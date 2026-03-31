@@ -20,6 +20,7 @@ const financialSchema = new mongoose.Schema({
 
 const startupDataSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    teamMembers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     tasks: [taskSchema],
     milestones: [milestoneSchema],
     financials: financialSchema

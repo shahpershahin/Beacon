@@ -5,6 +5,7 @@ import TaskBoard from '@/components/TaskBoard';
 import MilestoneTracker from '@/components/MilestoneTracker';
 import FinancialTracker from '@/components/FinancialTracker';
 import ProgressOverview from '@/components/ProgressOverview';
+import StartupChart from '@/components/StartupChart';
 
 export default function Dashboard() {
     const [startupData, setStartupData] = useState(null);
@@ -34,15 +35,24 @@ export default function Dashboard() {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
+            {/* Analytics Chart Row */}
+            <div style={{ width: '100%' }}>
+                <StartupChart financials={startupData?.financials || {}} />
+            </div>
+
             {/* Top Geckoboard KPIs Row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
                 <ProgressOverview tasks={startupData?.tasks || []} milestones={startupData?.milestones || []} />
                 <FinancialTracker financials={startupData?.financials || {}} onUpdate={fetchData} />
             </div>
 
-            {/* Bottom Asana Lists Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem' }}>
+            {/* Full Width Kanban Board Row */}
+            <div style={{ width: '100%' }}>
                 <TaskBoard tasks={startupData?.tasks || []} onUpdate={fetchData} />
+            </div>
+
+            {/* Milestones Row */}
+            <div style={{ width: '100%' }}>
                 <MilestoneTracker milestones={startupData?.milestones || []} onUpdate={fetchData} />
             </div>
 

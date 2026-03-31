@@ -32,6 +32,7 @@ export default function DashboardLayout({ children }) {
                 <h2 style={{ color: 'var(--accent)', margin: 0, wordBreak: 'break-word', letterSpacing: '-0.02em' }}>{user.startupName || 'Startup Tracker'}</h2>
                 <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
                     <Link href="/dashboard" style={{ color: 'var(--foreground)', textDecoration: 'none', fontWeight: 'bold' }}>Overview</Link>
+                    <Link href="/dashboard/settings" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Settings</Link>
                     <a href="#" onClick={handleLogout} style={{ color: 'var(--text-muted)', textDecoration: 'none', marginTop: 'auto' }}>Logout</a>
                 </nav>
             </aside>
