@@ -1,31 +1,10 @@
 'use client';
-import { useState } from 'react';
 
-export default function MilestoneTracker({ milestones, onUpdate }) {
-    const [newMilestone, setNewMilestone] = useState('');
-
-    const handleAddMilestone = async (e) => {
-        e.preventDefault();
-        if (!newMilestone.trim()) return;
-
-        try {
-            const token = localStorage.getItem('token');
-            await fetch('http://localhost:5000/api/startup/milestones', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-                body: JSON.stringify({ title: newMilestone })
-            });
-            setNewMilestone('');
-            onUpdate();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
+export default function MilestoneTracker({ milestones, onUpdate, isAdmin }) {
     const toggleAchieved = async (m) => {
         try {
             const token = localStorage.getItem('token');
-            await fetch(`http://localhost:5000/api/startup/milestones/${m._id}`, {
+            await fetch(`http://localhost:5001/api/startup/milestones/${m._id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify({ achieved: !m.achieved })
@@ -55,7 +34,7 @@ export default function MilestoneTracker({ milestones, onUpdate }) {
                 <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>{achievedCount}/{milestones.length}</span>
             </div>
 
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.5rem 0' }}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0' }}>
                 {milestones.map(m => (
                     <li key={m._id} className="task-row">
                         <div
@@ -63,10 +42,11 @@ export default function MilestoneTracker({ milestones, onUpdate }) {
                                 width: '18px', height: '18px', borderRadius: '4px',
                                 background: m.achieved ? 'var(--success)' : 'var(--bg-app)',
                                 border: m.achieved ? 'none' : '1px solid var(--border)',
-                                display: 'grid', placeContent: 'center', cursor: 'pointer',
-                                transition: 'all 0.2s'
+                                display: 'grid', placeContent: 'center', cursor: isAdmin ? 'pointer' : 'default',
+                                transition: 'all 0.2s',
+                                opacity: !isAdmin && !m.achieved ? 0.3 : 1
                             }}
-                            onClick={() => toggleAchieved(m)}
+                            onClick={() => isAdmin && toggleAchieved(m)}
                         >
                             {m.achieved && <span style={{ color: 'white', fontSize: '12px' }}>✓</span>}
                         </div>
@@ -81,17 +61,6 @@ export default function MilestoneTracker({ milestones, onUpdate }) {
                 ))}
                 {milestones.length === 0 && <li style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No milestones set.</li>}
             </ul>
-
-            <form onSubmit={handleAddMilestone} style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                    type="text"
-                    value={newMilestone}
-                    onChange={(e) => setNewMilestone(e.target.value)}
-                    placeholder="New milestone..."
-                    className="task-input"
-                />
-                <button type="submit" className="btn-primary" style={{ padding: '0.5rem 1rem' }}>Add</button>
-            </form>
         </div>
     );
 }

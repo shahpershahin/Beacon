@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { GoogleLogin } from '@react-oauth/google';
+import toast from 'react-hot-toast';
 
 export default function Login() {
     const router = useRouter();
@@ -15,7 +17,7 @@ export default function Login() {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5000/api/auth/login', {
+            const res = await fetch('http://localhost:5001/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -67,7 +69,38 @@ export default function Login() {
                     </button>
                 </form>
 
-                <div className="auth-link">
+                <div style={{ margin: '1.5rem 0', display: 'flex', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                    <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
+                    <span style={{ margin: '0 1rem' }}>OR</span>
+                    <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <GoogleLogin
+                        onSuccess={async (credentialResponse) => {
+                            try {
+                                const loadingToast = toast.loading('Signing in with Google...');
+                                const res = await fetch('http://localhost:5001/api/auth/google', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ credential: credentialResponse.credential })
+                                });
+                                const data = await res.json();
+                                if (!res.ok) throw new Error(data.message || 'Google Login failed');
+                                localStorage.setItem('token', data.token);
+                                localStorage.setItem('user', JSON.stringify(data.user));
+                                toast.success('Welcome back!', { id: loadingToast });
+                                router.push('/dashboard');
+                            } catch (err) {
+                                toast.error(err.message || 'Google Authentication failed');
+                            }
+                        }}
+                        onError={() => toast.error('Google Auth pop-up failed')}
+                        theme="filled_black"
+                    />
+                </div>
+
+                <div className="auth-link" style={{ marginTop: '1.5rem' }}>
                     Don't have an account? <Link href="/signup">Sign up</Link>
                 </div>
             </div>

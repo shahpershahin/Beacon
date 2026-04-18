@@ -5,9 +5,29 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const startupRoutes = require('./routes/startup');
+const aiRoutes = require('./routes/ai');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
+
+// WebSocket Integration Pipeline
+const http = require('http');
+const { Server } = require('socket.io');
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] }
+});
+
+app.use((req, res, next) => {
+  req.io = io; // Hook broadcaster natively into API chain
+  next();
+});
+
+io.on('connection', (socket) => {
+  socket.on('join_startup', (startupId) => {
+     socket.join(startupId);
+  });
+});
 
 app.use(cors({
   origin: '*',
@@ -19,12 +39,13 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/startup', startupRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.get('/', (req, res) => {
-  res.send('Startup Dashboard API Running');
+  res.send('Startup Dashboard API Running (Sockets Enabled)');
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB Connected'))
