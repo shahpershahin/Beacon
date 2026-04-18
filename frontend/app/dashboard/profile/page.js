@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { getApiUrl } from '@/utils/api';
 
 export default function Profile() {
   const [name, setName] = useState('');
@@ -29,7 +30,7 @@ export default function Profile() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5001/api/auth/profile', {
+      const res = await fetch(getApiUrl('/api/auth/update'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
         body: JSON.stringify(payload)
@@ -37,9 +38,9 @@ export default function Profile() {
       const data = await res.json();
       
       if (res.ok) {
-        toast.success(data.message || 'Profile updated!', { id: loadingToast });
-        localStorage.setItem('user', JSON.stringify(data.user)); // Update local storage identity
-        setCurrentUser(data.user);
+        toast.success('Profile updated!', { id: loadingToast });
+        localStorage.setItem('user', JSON.stringify(data)); // Update local storage identity
+        setCurrentUser(data);
         setPassword(''); // Clear the password field
         // Dispatch custom event to trigger navbar update
         window.dispatchEvent(new Event('storage'));

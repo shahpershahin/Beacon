@@ -26,13 +26,21 @@ export default function DashboardLayout({ children }) {
             if (!token || !userData) {
                 router.push('/login');
             } else {
-                setUser(JSON.parse(userData));
-                setUserRole(localStorage.getItem('userRole'));
+                const parsedUser = JSON.parse(userData);
+                setUser(parsedUser);
+                
+                // Clean up potentially corrupt localStorage strings
+                let savedRole = localStorage.getItem('userRole');
+                if (savedRole === 'undefined' || savedRole === 'null') savedRole = null;
+                
+                // Prioritize user profile role first, then fallback to valid saved role
+                const role = parsedUser.role || savedRole || 'viewer';
+                setUserRole(role);
             }
         };
-        
+
         loadUser();
-        
+
         // Polling as a fallback if role hasn't synced yet
         const interval = setInterval(loadUser, 1000);
 
@@ -70,7 +78,7 @@ export default function DashboardLayout({ children }) {
                 </div>
                 <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, marginTop: '1rem' }}>
                     <Link href="/dashboard" style={{ color: 'var(--foreground)', textDecoration: 'none', fontWeight: 'bold' }}>Overview</Link>
-                    
+
                     <div style={{ marginTop: '1.5rem', marginBottom: '0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Channels</div>
                     <Link href="/dashboard?channel=General" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🏢 All-Hands</Link>
                     <Link href="/dashboard?channel=Engineering" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>💻 Engineering</Link>
@@ -78,15 +86,15 @@ export default function DashboardLayout({ children }) {
                     <Link href="/dashboard?channel=Finance" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>💰 Finance</Link>
                     <Link href="/dashboard?channel=Operations" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>⚙️ Operations</Link>
 
-                    {(userRole === 'Admin' || userRole === 'HR' || userRole === 'admin' || userRole === 'founder' || userRole === 'Founder' || user.role === 'founder' || user.role === 'Admin') && (
-                        <>
-                            <div style={{ marginTop: '1.5rem', marginBottom: '0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Administrative</div>
-                            <Link href="/dashboard/hr" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>👥 HR Portal</Link>
-                        </>
-                    )}
+
 
                     <div style={{ marginTop: '1.5rem', marginBottom: '0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Management</div>
                     <Link href="/dashboard/wiki" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>📚 Knowledge Base</Link>
+
+                    {/* Strict role-based access for Team & HR */}
+                    {['founder', 'admin', 'hr'].includes(user.role?.toLowerCase()) || ['founder', 'admin', 'hr'].includes(userRole?.toLowerCase()) ? (
+                        <Link href="/dashboard/hr" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>👥 Team & HR</Link>
+                    ) : null}
                     <Link href="/dashboard/manage" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Manage Data</Link>
                     <Link href="/dashboard/integrations" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Integrations</Link>
                     <Link href="/dashboard/settings" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Settings</Link>

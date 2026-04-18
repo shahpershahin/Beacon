@@ -91,7 +91,13 @@ export default function Login() {
                                 localStorage.setItem('token', data.token);
                                 localStorage.setItem('user', JSON.stringify(data.user));
                                 toast.success('Welcome back!', { id: loadingToast });
-                                router.push('/dashboard');
+                                
+                                // NEW: If Google login identifies a new user, send to onboarding
+                                if (data.isNewUser) {
+                                    router.push('/onboarding');
+                                } else {
+                                    router.push('/dashboard');
+                                }
                             } catch (err) {
                                 toast.error(err.message || 'Google Authentication failed');
                             }

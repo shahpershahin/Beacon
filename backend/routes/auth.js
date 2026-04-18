@@ -77,11 +77,13 @@ router.post('/google', async (req, res) => {
         const { email, name } = ticket.getPayload();
 
         let user = await User.findOne({ email });
-        if (!user) {
+        const isNewUser = !user;
+
+        if (isNewUser) {
             user = new User({
                 email,
                 name,
-                password: await bcrypt.hash(Date.now().toString() + Math.random(), 10), // secure random dummy password
+                password: await bcrypt.hash(Date.now().toString() + Math.random(), 10),
                 startupName: name + "'s Workspace"
             });
             await user.save();
@@ -90,30 +92,56 @@ router.post('/google', async (req, res) => {
         const payload = { user: { id: user.id } };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-        res.json({ token, user: { id: user.id, name: user.name, email: user.email, startupName: user.startupName } });
+        res.json({ 
+            token, 
+            user: { 
+                id: user.id, 
+                name: user.name, 
+                email: user.email, 
+                role: user.role || 'founder',
+                startupName: user.startupName 
+            },
+            isNewUser
+        });
     } catch (err) {
         console.error("GOOGLE AUTH ERROR:", err);
         res.status(500).json({ message: 'Invalid Google Token or Auth Error', error: err.message });
     }
 });
 
-// Update Profile
-router.put('/profile', auth, async (req, res) => {
+// Get User Profile
+router.get('/profile', auth, async (req, res) => {
     try {
-        const { name, password } = req.body;
+        const user = await User.findById(req.user.id).select('-password');
+        res.json(user);
+    } catch (err) {
+        res.status(500).send('Server Error');
+    }
+});
+
+// Update User Profile (Startup Name, etc)
+router.put('/update', auth, async (req, res) => {
+    try {
+        const { name, startupName, password } = req.body;
         const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
         
         if (name) user.name = name;
+        if (startupName) user.startupName = startupName;
         if (password) {
             const salt = await bcrypt.genSalt(10);
             user.password = await bcrypt.hash(password, salt);
         }
         
         await user.save();
-        res.json({ message: 'Profile updated successfully', user: { id: user.id, name: user.name, email: user.email, startupName: user.startupName } });
+        res.json({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            startupName: user.startupName
+        });
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).send('Server Error');
     }
 });
 
