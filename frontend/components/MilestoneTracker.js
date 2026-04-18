@@ -1,10 +1,11 @@
 'use client';
+import { getApiUrl } from '@/utils/api';
 
 export default function MilestoneTracker({ milestones, onUpdate, isAdmin }) {
     const toggleAchieved = async (m) => {
         try {
             const token = localStorage.getItem('token');
-            await fetch(`http://localhost:5001/api/startup/milestones/${m._id}`, {
+            await fetch(getApiUrl(`/api/startup/milestones/${m._id}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify({ achieved: !m.achieved })
@@ -50,13 +51,22 @@ export default function MilestoneTracker({ milestones, onUpdate, isAdmin }) {
                         >
                             {m.achieved && <span style={{ color: 'white', fontSize: '12px' }}>✓</span>}
                         </div>
-                        <span style={{
-                            color: m.achieved ? 'var(--text-muted)' : 'var(--text-main)',
-                            fontWeight: m.achieved ? 'normal' : '500',
-                            textDecoration: m.achieved ? 'line-through' : 'none'
-                        }}>
-                            {m.title}
-                        </span>
+                        <div style={{ display: 'flex', flex: 1, flexDirection: 'column' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{
+                                    color: m.achieved ? 'var(--text-muted)' : 'var(--text-main)',
+                                    fontWeight: m.achieved ? 'normal' : '600',
+                                    textDecoration: m.achieved ? 'line-through' : 'none',
+                                    fontSize: '0.95rem'
+                                }}>
+                                    {m.title}
+                                </span>
+                                {m.goalId && (
+                                    <span style={{ fontSize: '0.65rem', background: 'var(--bg-app)', padding: '0.1rem 0.5rem', borderRadius: '4px', border: '1px solid var(--accent)', color: 'var(--accent)', fontWeight: 800 }}>GOAL LINKED</span>
+                                )}
+                            </div>
+                            {m.date && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Due {new Date(m.date).toLocaleDateString()}</div>}
+                        </div>
                     </li>
                 ))}
                 {milestones.length === 0 && <li style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No milestones set.</li>}

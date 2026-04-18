@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { getApiUrl } from '@/utils/api';
 
 export default function ManageData() {
     const [financials, setFinancials] = useState({ revenue: 0, funding: 0, burnRate: 0 });
@@ -14,7 +15,7 @@ export default function ManageData() {
         const fetchData = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:5001/api/startup', { headers: { 'x-auth-token': token } });
+            const res = await fetch(getApiUrl('/api/startup'), { headers: { 'x-auth-token': token } });
                 const data = await res.json();
                 if (data.financials) {
                     setFinancials({
@@ -24,7 +25,7 @@ export default function ManageData() {
                     });
                 }
 
-                const membersRes = await fetch('http://localhost:5001/api/startup/members', { headers: { 'x-auth-token': token } });
+            const membersRes = await fetch(getApiUrl('/api/startup/members'), { headers: { 'x-auth-token': token } });
                 const membersData = await membersRes.json();
                 setTeamMembers(Array.isArray(membersData) ? membersData : []);
             } catch (err) { }
@@ -37,7 +38,7 @@ export default function ManageData() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const req = await fetch('http://localhost:5001/api/startup/financials', {
+            const req = await fetch(getApiUrl('/api/startup/financials'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify({
@@ -62,7 +63,7 @@ export default function ManageData() {
         const loadingToast = toast.loading('Deploying task...');
         try {
             const token = localStorage.getItem('token');
-            await fetch('http://localhost:5001/api/startup/tasks', {
+            await fetch(getApiUrl('/api/startup/tasks'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify({ title: newTask, status: 'pending', assignee: taskAssignee || undefined })
@@ -80,7 +81,7 @@ export default function ManageData() {
         const loadingToast = toast.loading('Recording milestone...');
         try {
             const token = localStorage.getItem('token');
-            await fetch('http://localhost:5001/api/startup/milestones', {
+            await fetch(getApiUrl('/api/startup/milestones'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify({ title: newMilestone })

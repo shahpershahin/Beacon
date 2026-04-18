@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Users, UserPlus, Shield, Briefcase, Trash2, Mail } from 'lucide-react';
+import { getApiUrl } from '@/utils/api';
 
 export default function HRPortal() {
     const router = useRouter();
@@ -21,7 +22,7 @@ export default function HRPortal() {
         try {
             // Check access first manually on frontend to prevent flicker
             const user = JSON.parse(localStorage.getItem('user'));
-            const res = await fetch('http://localhost:5001/api/startup', {
+            const res = await fetch(getApiUrl('/api/startup'), {
                 headers: { 'x-auth-token': token }
             });
             const data = await res.json();
@@ -32,7 +33,7 @@ export default function HRPortal() {
                 return;
             }
 
-            const rosterRes = await fetch('http://localhost:5001/api/startup/members', {
+            const rosterRes = await fetch(getApiUrl('/api/startup/members'), {
                 headers: { 'x-auth-token': token }
             });
             const rosterData = await rosterRes.json();
@@ -56,7 +57,7 @@ export default function HRPortal() {
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:5001/api/startup/invite', {
+            const res = await fetch(getApiUrl('/api/startup/invite'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify({ email, role, jobTitle, department })
@@ -84,7 +85,7 @@ export default function HRPortal() {
     const handleUpdateRole = async (memberId, newRole) => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/startup/members/${memberId}`, {
+            const res = await fetch(getApiUrl(`/api/startup/members/${memberId}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify({ role: newRole })
@@ -102,7 +103,7 @@ export default function HRPortal() {
         if (!confirm('Revoke all access for this member?')) return;
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/startup/members/${memberId}`, {
+            const res = await fetch(getApiUrl(`/api/startup/members/${memberId}`), {
                 method: 'DELETE',
                 headers: { 'x-auth-token': token }
             });

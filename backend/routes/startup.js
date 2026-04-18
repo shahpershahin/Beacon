@@ -113,7 +113,71 @@ router.post('/financials', auth, async (req, res) => {
     }
 });
 
-// Add Task
+// --- GOALS Section ---
+router.get('/goals', auth, async (req, res) => {
+    try {
+        let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        res.json(data?.goals || []);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.post('/goals', auth, async (req, res) => {
+    try {
+        let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) data = new StartupData({ user: req.user.id });
+        
+        if (!checkAdminAccess(data, req.user.id)) {
+            return res.status(403).json({ message: 'RBAC: Admin role required to create goals' });
+        }
+
+        data.goals.push(req.body);
+        await data.save();
+        if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+        res.json(data.goals);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.put('/goals/:id', auth, async (req, res) => {
+    try {
+        let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        const goal = data.goals.id(req.params.id);
+        if (!goal) return res.status(404).json({ message: 'Goal not found' });
+
+        if (!checkAdminAccess(data, req.user.id)) {
+            return res.status(403).json({ message: 'RBAC: Admin role required' });
+        }
+
+        Object.assign(goal, req.body);
+        await data.save();
+        if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+        res.json(data.goals);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.delete('/goals/:id', auth, async (req, res) => {
+    try {
+        let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        data.goals.pull(req.params.id);
+        
+        // Cleanup links
+        data.milestones.forEach(m => {
+            if (m.goalId && m.goalId.toString() === req.params.id) m.goalId = undefined;
+        });
+
+        await data.save();
+        if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+        res.json(data.goals);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 router.post('/tasks', auth, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));

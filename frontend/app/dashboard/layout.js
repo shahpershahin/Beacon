@@ -86,6 +86,7 @@ export default function DashboardLayout({ children }) {
                     )}
 
                     <div style={{ marginTop: '1.5rem', marginBottom: '0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Management</div>
+                    <Link href="/dashboard/wiki" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>📚 Knowledge Base</Link>
                     <Link href="/dashboard/manage" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Manage Data</Link>
                     <Link href="/dashboard/integrations" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Integrations</Link>
                     <Link href="/dashboard/settings" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Settings</Link>

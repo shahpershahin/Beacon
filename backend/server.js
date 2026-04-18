@@ -6,6 +6,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const startupRoutes = require('./routes/startup');
 const aiRoutes = require('./routes/ai');
+const docRoutes = require('./routes/docs');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -14,8 +15,19 @@ const PORT = process.env.PORT || 5001;
 const http = require('http');
 const { Server } = require('socket.io');
 const server = http.createServer(app);
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://trybeacon.vercel.app',
+  process.env.FRONTEND_URL // Allow dynamic override
+].filter(Boolean);
+
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] }
+  cors: { 
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true
+  }
 });
 
 app.use((req, res, next) => {
@@ -30,9 +42,10 @@ io.on('connection', (socket) => {
 });
 
 app.use(cors({
-  origin: '*',
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
+  credentials: true
 }));
 app.use(express.json());
 
@@ -40,6 +53,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/startup', startupRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/docs', docRoutes);
 
 app.get('/', (req, res) => {
   res.send('Startup Dashboard API Running (Sockets Enabled)');

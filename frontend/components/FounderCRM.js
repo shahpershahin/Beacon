@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Users, Plus, TrendingUp, MoreVertical, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { getApiUrl } from '@/utils/api';
 
 export default function FounderCRM({ contacts, onUpdate, isAdmin }) {
     const [isAdding, setIsAdding] = useState(false);
@@ -12,7 +13,7 @@ export default function FounderCRM({ contacts, onUpdate, isAdmin }) {
         if (!newContact.name) return toast.error('Name is required');
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch('http://localhost:5001/api/startup/contacts', {
+            const res = await fetch(getApiUrl('/api/startup/contacts'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify(newContact)
@@ -31,7 +32,7 @@ export default function FounderCRM({ contacts, onUpdate, isAdmin }) {
     const handleDelete = async (id) => {
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`http://localhost:5001/api/startup/contacts/${id}`, {
+            const res = await fetch(getApiUrl(`/api/startup/contacts/${id}`), {
                 method: 'DELETE',
                 headers: { 'x-auth-token': token }
             });

@@ -11,9 +11,11 @@ import EmptyStateOnboarding from '@/components/EmptyStateOnboarding';
 import SprintManager from '@/components/SprintManager';
 import FounderCRM from '@/components/FounderCRM';
 import TeamRoster from '@/components/TeamRoster';
+import Roadmap from '@/components/Roadmap';
 import { io } from 'socket.io-client';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { getApiUrl, SOCKET_URL } from '@/utils/api';
 
 export default function Dashboard() {
     const [startupData, setStartupData] = useState(null);
@@ -26,7 +28,7 @@ export default function Dashboard() {
 
     useEffect(() => {
         fetchData();
-        const socket = io('http://localhost:5001');
+        const socket = io(SOCKET_URL);
         socket.on('startup_updated', () => {
             fetchData(); // Actively re-sync state entirely when peers mutate it
         });
@@ -36,7 +38,7 @@ export default function Dashboard() {
     const fetchData = async () => {
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch('http://localhost:5001/api/startup', {
+            const res = await fetch(getApiUrl('/api/startup'), {
                 headers: { 'x-auth-token': token }
             });
             const data = await res.json();
@@ -54,7 +56,10 @@ export default function Dashboard() {
         }
     };
 
-    const isAdmin = userRole?.toLowerCase() === 'admin' || userRole?.toLowerCase() === 'founder';
+    const isAdmin = userRole?.toLowerCase() === 'admin' || 
+                    userRole?.toLowerCase() === 'founder' || 
+                    startupData?.role?.toLowerCase() === 'founder' || 
+                    startupData?.role?.toLowerCase() === 'admin';
     const rawTasks = startupData?.tasks || [];
     
     // Filter tasks by department if not in 'General' or 'All-Hands'
@@ -174,6 +179,15 @@ export default function Dashboard() {
                                 tasks={filteredTasks} 
                                 onUpdate={fetchData}
                                 isAdmin={isAdmin}
+                            />
+                        )}
+                        {activeChannel === 'General' && (
+                            <Roadmap 
+                                goals={startupData?.goals || []}
+                                milestones={startupData?.milestones || []}
+                                tasks={rawTasks}
+                                isAdmin={isAdmin}
+                                onUpdate={fetchData}
                             />
                         )}
                         {activeChannel === 'General' && (

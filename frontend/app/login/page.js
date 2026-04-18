@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { GoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
+import { getApiUrl } from '@/utils/api';
 
 export default function Login() {
     const router = useRouter();
@@ -17,7 +18,7 @@ export default function Login() {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5001/api/auth/login', {
+            const res = await fetch(getApiUrl('/api/auth/login'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -80,7 +81,7 @@ export default function Login() {
                         onSuccess={async (credentialResponse) => {
                             try {
                                 const loadingToast = toast.loading('Signing in with Google...');
-                                const res = await fetch('http://localhost:5001/api/auth/google', {
+                                const res = await fetch(getApiUrl('/api/auth/google'), {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ credential: credentialResponse.credential })

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { getApiUrl } from '@/utils/api';
 
 export default function TaskBoard({ tasks, onUpdate, activeChannel, userDepartment, isAdmin }) {
     const [editingTaskId, setEditingTaskId] = useState(null);
@@ -35,7 +36,7 @@ export default function TaskBoard({ tasks, onUpdate, activeChannel, userDepartme
 
         try {
             const token = localStorage.getItem('token');
-            await fetch(`http://localhost:5001/api/startup/tasks/${taskId}`, {
+            await fetch(getApiUrl(`/api/startup/tasks/${taskId}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify({ status: newStatus })
@@ -55,7 +56,7 @@ export default function TaskBoard({ tasks, onUpdate, activeChannel, userDepartme
 
         try {
             const token = localStorage.getItem('token');
-            await fetch(`http://localhost:5001/api/startup/tasks/${taskId}`, {
+            await fetch(getApiUrl(`/api/startup/tasks/${taskId}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify({ title: editTitle })
@@ -73,7 +74,7 @@ export default function TaskBoard({ tasks, onUpdate, activeChannel, userDepartme
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:5001/api/startup/tasks', {
+            const res = await fetch(getApiUrl('/api/startup/tasks'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify({ 

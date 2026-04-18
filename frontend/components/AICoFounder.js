@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bot, X, Send, Sparkles, TrendingUp, AlertTriangle } from 'lucide-react';
+import { getApiUrl } from '@/utils/api';
 import ReactMarkdown from 'react-markdown';
 
 export default function AICoFounder() {
@@ -33,7 +34,7 @@ export default function AICoFounder() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5001/api/ai/analyze', {
+      const res = await fetch(getApiUrl('/api/ai/analyze'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
         body: JSON.stringify({ prompt: userMessage })

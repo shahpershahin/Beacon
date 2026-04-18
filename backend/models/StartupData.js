@@ -1,12 +1,28 @@
 const mongoose = require('mongoose');
 
+const goalSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    description: { type: String },
+    status: { type: String, enum: ['active', 'achieved', 'paused'], default: 'active' },
+    priority: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: 'Medium' },
+    targetDate: { type: Date }
+});
+
 const taskSchema = new mongoose.Schema({
     title: { type: String, required: true },
     status: { type: String, enum: ['pending', 'in-progress', 'completed'], default: 'pending' },
     dueDate: { type: Date },
     assignee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     sprintId: { type: mongoose.Schema.Types.ObjectId },
+    milestoneId: { type: mongoose.Schema.Types.ObjectId }, // Link to Milestone
     department: { type: String, enum: ['Engineering', 'Design', 'Finance', 'Growth', 'Operations', 'General'], default: 'General' }
+});
+
+const milestoneSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    achieved: { type: Boolean, default: false },
+    date: { type: Date },
+    goalId: { type: mongoose.Schema.Types.ObjectId } // Link to Goal
 });
 
 const sprintSchema = new mongoose.Schema({
@@ -25,17 +41,12 @@ const contactSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
 });
 
-const milestoneSchema = new mongoose.Schema({
-    title: { type: String, required: true },
-    achieved: { type: Boolean, default: false },
-    date: { type: Date }
-});
-
 const financialSchema = new mongoose.Schema({
     revenue: { type: Number, default: 0 },
     funding: { type: Number, default: 0 },
     burnRate: { type: Number, default: 0 }
 });
+
 
 const startupDataSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -45,6 +56,7 @@ const startupDataSchema = new mongoose.Schema({
         jobTitle: { type: String },
         department: { type: String, enum: ['Engineering', 'Design', 'Finance', 'Growth', 'Operations', 'General'], default: 'General' }
     }],
+    goals: [goalSchema],
     tasks: [taskSchema],
     milestones: [milestoneSchema],
     financials: financialSchema,
