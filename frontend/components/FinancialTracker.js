@@ -7,11 +7,13 @@ export default function FinancialTracker({ financials, isAdmin }) {
     const funding = financials?.funding || 0;
     const burn = financials?.burnRate || 0;
 
-    let runway = burn > 0 ? (funding / burn).toFixed(1) : '∞';
+    const cash = financials?.cashInBank || financials?.funding || 0;
+
+    let runway = burn > 0 ? (cash / burn).toFixed(1) : '∞';
     const isCritical = runway !== '∞' && runway < 6;
     const isWarning = runway !== '∞' && runway >= 6 && runway < 12;
 
-    const simulatedRunway = burn > 0 ? (funding / (burn + 10000)).toFixed(1) : '∞';
+    const simulatedRunway = burn > 0 ? (cash / (burn + 10000)).toFixed(1) : '∞';
 
     return (
         <div className={`kpi-widget ${isCritical ? 'glow-danger' : isWarning ? 'glow-warning' : ''}`} style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', padding: '1.5rem', height: '100%' }}>

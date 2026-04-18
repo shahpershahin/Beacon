@@ -9,8 +9,30 @@ export default function TaskBoard({ tasks, onUpdate, activeChannel, userDepartme
     const [isCreating, setIsCreating] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [filterMine, setFilterMine] = useState(false);
+    
+    // Task Chat State
+    const [chatTaskId, setChatTaskId] = useState(null);
+    const [newCommentText, setNewCommentText] = useState('');
 
     const hasEditAccess = isAdmin || (activeChannel === userDepartment);
+
+    const handleAddComment = async (e, id) => {
+        e.preventDefault();
+        if (!newCommentText.trim()) return;
+        
+        try {
+            const token = localStorage.getItem('token');
+            await fetch(getApiUrl(`/api/startup/tasks/${id}/comments`), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                body: JSON.stringify({ text: newCommentText })
+            });
+            setNewCommentText('');
+            onUpdate(); // Re-fetch dashboard data to show new comment
+        } catch (err) {
+            console.error('Failed to add comment:', err);
+        }
+    };
 
     useEffect(() => {
         try {
@@ -178,16 +200,25 @@ export default function TaskBoard({ tasks, onUpdate, activeChannel, userDepartme
                                         </form>
                                     ) : (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                                            <span style={{ wordBreak: 'break-word' }}>{t.title}</span>
-                                            {hasEditAccess && (
+                                            <span style={{ wordBreak: 'break-word', flex: 1 }}>{t.title}</span>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                 <button
-                                                    onClick={() => { setEditingTaskId(t._id); setEditTitle(t.title); }}
-                                                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, fontSize: '0.875rem' }}
-                                                    title="Edit task text"
+                                                    onClick={() => setChatTaskId(t._id)}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontSize: '0.875rem' }}
+                                                    title="Task Chat"
                                                 >
-                                                    ✎
+                                                    💬 {t.comments?.length > 0 && <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>{t.comments.length}</span>}
                                                 </button>
-                                            )}
+                                                {hasEditAccess && (
+                                                    <button
+                                                        onClick={() => { setEditingTaskId(t._id); setEditTitle(t.title); }}
+                                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, fontSize: '0.875rem' }}
+                                                        title="Edit task text"
+                                                    >
+                                                        ✎
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                     {t.assignee && (
@@ -196,6 +227,20 @@ export default function TaskBoard({ tasks, onUpdate, activeChannel, userDepartme
                                                 {t.assignee.name ? t.assignee.name[0].toUpperCase() : '@'}
                                             </div>
                                             {t.assignee.name || t.assignee.email}
+                                        </div>
+                                    )}
+                                    {t.linkedDocs?.length > 0 && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.75rem' }}>
+                                            {t.linkedDocs.map(doc => (
+                                                <a 
+                                                    key={doc._id} 
+                                                    href={`/dashboard/wiki?docId=${doc._id}`}
+                                                    target="_blank"
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', color: 'var(--text-muted)', textDecoration: 'none', background: 'var(--bg-app)', padding: '0.3rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border)' }}
+                                                >
+                                                    📚 {doc.title}
+                                                </a>
+                                            ))}
                                         </div>
                                     )}
                                     {t.department && t.department !== 'General' && activeChannel === 'General' && (
@@ -209,6 +254,53 @@ export default function TaskBoard({ tasks, onUpdate, activeChannel, userDepartme
                     </div>
                 ))}
             </div>
+
+            {/* TASK CHAT MODAL */}
+            {chatTaskId && (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '1rem', backdropFilter: 'blur(4px)' }}>
+                    <div className="card" style={{ maxWidth: '500px', width: '100%', background: 'var(--bg-app)', border: '1px solid var(--border)', borderRadius: '12px', display: 'flex', flexDirection: 'column', height: '600px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--foreground)' }}>
+                                💬 Task Thread
+                            </h3>
+                            <button onClick={() => setChatTaskId(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+                        </div>
+                        
+                        <div style={{ padding: '1rem 1.5rem', background: 'var(--card-bg)', borderBottom: '1px solid var(--border)', fontSize: '0.9rem', color: 'var(--text-main)', fontStyle: 'italic' }}>
+                            "{tasks.find(t => t._id === chatTaskId)?.title}"
+                        </div>
+                        
+                        <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {tasks.find(t => t._id === chatTaskId)?.comments?.length === 0 ? (
+                                <div style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: '2rem', fontSize: '0.9rem' }}>No comments yet. Start the discussion!</div>
+                            ) : (
+                                tasks.find(t => t._id === chatTaskId)?.comments?.map((c, i) => (
+                                    <div key={i} style={{ background: 'var(--card-bg)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--accent)', fontWeight: 'bold', marginBottom: '0.25rem' }}>
+                                            {c.user?.name || c.user?.email || 'User'}
+                                            <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '0.5rem' }}>
+                                                {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '0.9rem', color: 'var(--foreground)' }}>{c.text}</div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                        
+                        <form onSubmit={(e) => handleAddComment(e, chatTaskId)} style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '0.5rem' }}>
+                            <input 
+                                className="form-input" 
+                                placeholder="Type a message..." 
+                                value={newCommentText}
+                                onChange={e => setNewCommentText(e.target.value)}
+                                style={{ flex: 1 }}
+                            />
+                            <button type="submit" className="btn btn-primary" disabled={!newCommentText.trim()}>Send</button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

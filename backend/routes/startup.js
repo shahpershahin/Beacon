@@ -35,12 +35,47 @@ const checkHRAccess = (data, userId) => {
     return member && (member.role === 'Admin' || member.role === 'HR');
 };
 
+const logActivity = (data, userId, action, detail) => {
+    if (!data.activities) data.activities = [];
+    data.activities.unshift({ user: userId, action, detail });
+    if (data.activities.length > 50) data.activities = data.activities.slice(0, 50); // Keep last 50
+};
+
+// Automation Rules Engine
+const evaluateAutomations = async (triggerEvent, data, payload) => {
+    if (!data.automations) return;
+    const rules = data.automations.filter(a => a.active && a.trigger === triggerEvent);
+    
+    for (let rule of rules) {
+        if (rule.action === 'CREATE_ONBOARDING_TASKS' && triggerEvent === 'USER_INVITED') {
+            const newUserId = payload.newUserId;
+            if (newUserId) {
+                data.tasks.push({ title: 'Set up your workstation profile', status: 'pending', department: payload.department || 'General', assignee: newUserId });
+                data.tasks.push({ title: 'Review Company Readme / Docs', status: 'pending', department: payload.department || 'General', assignee: newUserId });
+                logActivity(data, newUserId, 'triggered automation', 'Assigned onboarding flow');
+            }
+        }
+        
+        if (rule.action === 'SLACK_ALERT' && triggerEvent === 'TASK_COMPLETED') {
+            if (data.integrations?.slackWebhookUrl) {
+                // Fire and forget (don't await to avoid blocking response)
+                triggerSlackNotification(
+                    data.integrations.slackWebhookUrl, 
+                    `✅ *Task Completed*\n${payload.title}`
+                ).catch(e => console.error("Auto-Slack failed", e));
+            }
+        }
+    }
+};
+
 // Get Dashboard Data
 router.get('/', auth, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id))
             .populate('user', 'name email')
             .populate('tasks.assignee', 'name email')
+            .populate('tasks.comments.user', 'name email')
+            .populate('activities.user', 'name email')
             .populate('teamMembers.user', 'name email');
 
         if (!data) {
@@ -93,11 +128,13 @@ router.post('/financials', auth, async (req, res) => {
             return res.status(403).json({ message: 'RBAC: Admin role required to mutate financials' });
         }
 
-        const oldRunway = data.financials.burnRate > 0 ? (data.financials.funding / data.financials.burnRate) : Infinity;
+        const oldRunway = data.financials.burnRate > 0 ? ((data.financials.cashInBank || data.financials.funding) / data.financials.burnRate) : Infinity;
         data.financials = { ...data.financials, ...req.body };
-        const newRunway = data.financials.burnRate > 0 ? (data.financials.funding / data.financials.burnRate) : Infinity;
+        const newRunway = data.financials.burnRate > 0 ? ((data.financials.cashInBank || data.financials.funding) / data.financials.burnRate) : Infinity;
 
         await data.save();
+        logActivity(data, req.user.id, 'updated financials', `Target Burn: $${data.financials.burnRate}`);
+        
         if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
 
         if (newRunway < 6 && oldRunway >= 6 && data.integrations?.slackWebhookUrl) {
@@ -196,6 +233,8 @@ router.post('/tasks', auth, async (req, res) => {
         }
 
         data.tasks.push(req.body);
+        logActivity(data, req.user.id, 'created task', req.body.title);
+        
         await data.save();
         if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
         res.json(data.tasks);
@@ -223,10 +262,78 @@ router.put('/tasks/:id', auth, async (req, res) => {
             return res.status(403).json({ message: `RBAC: Cross-channel editing restricted. This task belongs to ${taskDept}.` });
         }
 
+        const statusChanged = req.body.status && req.body.status !== task.status;
         Object.assign(task, req.body);
+        
+        if (statusChanged && task.status === 'completed') {
+            logActivity(data, req.user.id, 'completed task', task.title);
+            // --- TRIGGER AUTOMATION ENGINE ---
+            await evaluateAutomations('TASK_COMPLETED', data, { taskId: task._id, title: task.title, assignee: task.assignee });
+        }
+
         await data.save();
         if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
         res.json(data.tasks);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Add Task Comment (Built-in Communication Layer)
+router.post('/tasks/:id/comments', auth, async (req, res) => {
+    try {
+        let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
+
+        const task = data.tasks.id(req.params.id);
+        if (!task) return res.status(404).json({ message: 'Task not found' });
+
+        const newComment = {
+            user: req.user.id,
+            text: req.body.text
+        };
+
+        if (!task.comments) task.comments = [];
+        task.comments.push(newComment);
+        
+        // Log activity for adding comment
+        logActivity(data, req.user.id, 'left a comment on task', task.title);
+
+        await data.save();
+        
+        // Trigger socket update for the specific task chat
+        if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+
+        res.json(task.comments);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// --- Task Document Links ---
+router.post('/tasks/:id/docs', auth, async (req, res) => {
+    try {
+        let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
+
+        const task = data.tasks.id(req.params.id);
+        if (!task) return res.status(404).json({ message: 'Task not found' });
+
+        const newDocLink = {
+            _id: req.body.docId, // Use the MongoDB object ID of the doc
+            title: req.body.title // Cache the title so the task board doesn't need to join Document schema
+        };
+
+        if (!task.linkedDocs) task.linkedDocs = [];
+        // Prevent duplicates
+        if (!task.linkedDocs.some(d => d._id.toString() === req.body.docId)) {
+            task.linkedDocs.push(newDocLink);
+            logActivity(data, req.user.id, 'attached a document to task', task.title);
+            await data.save();
+            if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+        }
+
+        res.json(task.linkedDocs);
     } catch (err) {
         res.status(500).json({ message: 'Server error' });
     }
@@ -243,6 +350,8 @@ router.post('/milestones', auth, async (req, res) => {
         }
 
         data.milestones.push(req.body);
+        logActivity(data, req.user.id, 'planted milestone', req.body.title);
+        
         await data.save();
         if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
         res.json(data.milestones);
@@ -263,7 +372,14 @@ router.put('/milestones/:id', auth, async (req, res) => {
         }
 
         const { achieved } = req.body;
+        const newlyAchieved = achieved && !milestone.achieved;
+        
         Object.assign(milestone, req.body);
+        
+        if (newlyAchieved) {
+            logActivity(data, req.user.id, 'achieved milestone', milestone.title);
+        }
+        
         await data.save();
 
         if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
@@ -373,6 +489,10 @@ router.post('/invite', auth, async (req, res) => {
         if (isAlreadyMember) return res.status(400).json({ message: 'Already a team member' });
 
         data.teamMembers.push({ user: member._id, role, jobTitle, department });
+        
+        // --- TRIGGER AUTOMATION ENGINE ---
+        await evaluateAutomations('USER_INVITED', data, { newUserId: member._id, department });
+
         await data.save();
         res.json({ 
             message: 'Team member added with ' + role + ' role!',
@@ -453,13 +573,20 @@ router.get('/members', auth, async (req, res) => {
         if (!data) return res.json([]);
 
         const fullRoster = [];
+        const addedIds = new Set();
+        
         fullRoster.push({ _id: data.user._id, name: data.user.name, email: data.user.email, role: 'Founder' });
+        addedIds.add(data.user._id.toString());
 
         data.teamMembers.forEach(m => {
-            if (m.user) {
-                fullRoster.push({ _id: m.user._id, name: m.user.name || m.user.email, email: m.user.email, role: m.role || 'Viewer', jobTitle: m.jobTitle });
-            } else if (m._id) {
-                fullRoster.push({ _id: m._id, name: m.name || m.email, email: m.email, role: 'Viewer', jobTitle: m.jobTitle });
+            const memberId = m.user ? m.user._id?.toString() : m._id?.toString();
+            if (memberId && !addedIds.has(memberId)) {
+                addedIds.add(memberId);
+                if (m.user) {
+                    fullRoster.push({ _id: m.user._id, name: m.user.name || m.user.email, email: m.user.email, role: m.role || 'Viewer', jobTitle: m.jobTitle });
+                } else if (m._id) {
+                    fullRoster.push({ _id: m._id, name: m.name || m.email, email: m.email, role: 'Viewer', jobTitle: m.jobTitle });
+                }
             }
         });
 
@@ -553,6 +680,50 @@ router.delete('/contacts/:id', auth, async (req, res) => {
         await data.save();
         if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
         res.json(data.contacts);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Automations Endpoints (Admin Only)
+router.get('/automations', auth, async (req, res) => {
+    try {
+        let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        res.json(data?.automations || []);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.post('/automations', auth, async (req, res) => {
+    try {
+        let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
+        
+        if (!checkAdminAccess(data, req.user.id)) {
+            return res.status(403).json({ message: 'RBAC: Admin role required' });
+        }
+
+        data.automations.push(req.body);
+        await data.save();
+        if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+        res.json(data.automations);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.delete('/automations/:id', auth, async (req, res) => {
+    try {
+        let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!checkAdminAccess(data, req.user.id)) {
+            return res.status(403).json({ message: 'RBAC: Admin role required' });
+        }
+        
+        data.automations.pull(req.params.id);
+        await data.save();
+        if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+        res.json(data.automations);
     } catch (err) {
         res.status(500).json({ message: 'Server error' });
     }

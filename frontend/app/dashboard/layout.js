@@ -29,13 +29,14 @@ export default function DashboardLayout({ children }) {
                 const parsedUser = JSON.parse(userData);
                 setUser(parsedUser);
                 
-                // Clean up potentially corrupt localStorage strings
                 let savedRole = localStorage.getItem('userRole');
                 if (savedRole === 'undefined' || savedRole === 'null') savedRole = null;
                 
-                // Prioritize user profile role first, then fallback to valid saved role
-                const role = parsedUser.role || savedRole || 'viewer';
-                setUserRole(role);
+                // Pass the workspace role directly to state, don't let a generic profile role overwrite it
+                setUserRole({
+                    profile: parsedUser.role,
+                    workspace: savedRole
+                });
             }
         };
 
@@ -92,10 +93,13 @@ export default function DashboardLayout({ children }) {
                     <Link href="/dashboard/wiki" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>📚 Knowledge Base</Link>
 
                     {/* Strict role-based access for Team & HR */}
-                    {['founder', 'admin', 'hr'].includes(user.role?.toLowerCase()) || ['founder', 'admin', 'hr'].includes(userRole?.toLowerCase()) ? (
+                    {['founder', 'admin', 'hr'].includes(user.role?.toLowerCase()) || 
+                     ['founder', 'admin', 'hr'].includes(userRole?.profile?.toLowerCase()) || 
+                     ['founder', 'admin', 'hr'].includes(userRole?.workspace?.toLowerCase()) ? (
                         <Link href="/dashboard/hr" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>👥 Team & HR</Link>
                     ) : null}
                     <Link href="/dashboard/manage" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Manage Data</Link>
+                    <Link href="/dashboard/automations" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>⚡ Automations</Link>
                     <Link href="/dashboard/integrations" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Integrations</Link>
                     <Link href="/dashboard/settings" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Settings</Link>
                     <Link href="/dashboard/profile" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Account Profile</Link>

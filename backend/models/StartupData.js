@@ -8,6 +8,12 @@ const goalSchema = new mongoose.Schema({
     targetDate: { type: Date }
 });
 
+const commentSchema = new mongoose.Schema({
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    text: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now }
+});
+
 const taskSchema = new mongoose.Schema({
     title: { type: String, required: true },
     status: { type: String, enum: ['pending', 'in-progress', 'completed'], default: 'pending' },
@@ -15,14 +21,30 @@ const taskSchema = new mongoose.Schema({
     assignee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     sprintId: { type: mongoose.Schema.Types.ObjectId },
     milestoneId: { type: mongoose.Schema.Types.ObjectId }, // Link to Milestone
-    department: { type: String, enum: ['Engineering', 'Design', 'Finance', 'Growth', 'Operations', 'General'], default: 'General' }
+    department: { type: String, enum: ['Engineering', 'Design', 'Finance', 'Growth', 'Operations', 'General'], default: 'General' },
+    comments: [commentSchema], // Task Chat
+    linkedDocs: [{ 
+        _id: { type: mongoose.Schema.Types.ObjectId },
+        title: String 
+    }] // Deep Wiki Knowledge
+});
+
+const activityLogSchema = new mongoose.Schema({
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    action: { type: String, required: true }, // e.g. "created task", "achieved milestone"
+    detail: { type: String }, // e.g. "Drafted Pitch Deck"
+    timestamp: { type: Date, default: Date.now }
 });
 
 const milestoneSchema = new mongoose.Schema({
     title: { type: String, required: true },
+    description: { type: String },
     achieved: { type: Boolean, default: false },
-    date: { type: Date },
-    goalId: { type: mongoose.Schema.Types.ObjectId } // Link to Goal
+    targetDate: { type: Date },
+    linkedDocs: [{ 
+        _id: { type: mongoose.Schema.Types.ObjectId },
+        title: String 
+    }] // Deep Wiki Knowledge
 });
 
 const sprintSchema = new mongoose.Schema({
@@ -44,7 +66,8 @@ const contactSchema = new mongoose.Schema({
 const financialSchema = new mongoose.Schema({
     revenue: { type: Number, default: 0 },
     funding: { type: Number, default: 0 },
-    burnRate: { type: Number, default: 0 }
+    burnRate: { type: Number, default: 0 },
+    cashInBank: { type: Number, default: 0 }
 });
 
 
@@ -60,6 +83,13 @@ const startupDataSchema = new mongoose.Schema({
     tasks: [taskSchema],
     milestones: [milestoneSchema],
     financials: financialSchema,
+    activities: [activityLogSchema],
+    automations: [{ 
+        trigger: String, 
+        action: String, 
+        payload: mongoose.Schema.Types.Mixed, 
+        active: { type: Boolean, default: true } 
+    }],
     integrations: {
         stripeKey: { type: String, default: '' },
         slackWebhookUrl: { type: String, default: '' }

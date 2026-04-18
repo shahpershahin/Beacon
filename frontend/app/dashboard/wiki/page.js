@@ -91,6 +91,48 @@ export default function WikiPage() {
         doc.category.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Task Linking State
+    const [tasks, setTasks] = useState([]);
+    
+    // Fetch tasks to populate dropdown
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch('http://localhost:5001/api/startup', { headers: { 'x-auth-token': token }});
+                const data = await res.json();
+                setTasks(data.tasks || []);
+            } catch (err) {}
+        };
+        fetchDashboardData();
+    }, []);
+
+    const handleLinkTask = async (taskId) => {
+        if (!taskId) return;
+        const token = localStorage.getItem('token');
+        try {
+            await fetch(`http://localhost:5001/api/startup/tasks/${taskId}/docs`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                body: JSON.stringify({ docId: selectedDoc._id, title: selectedDoc.title })
+            });
+            toast.success('Document pinned to task!');
+            
+            // Re-fetch to update local states
+            const dashboardRes = await fetch('http://localhost:5001/api/startup', { headers: { 'x-auth-token': token }});
+            setTasks((await dashboardRes.json()).tasks);
+        } catch (err) {
+            toast.error('Failed to link document');
+        }
+    };
+
+    const getLinkedTasksForSelectedDoc = () => {
+        if (!selectedDoc) return [];
+        return tasks.filter(t => t.linkedDocs?.some(d => d._id === selectedDoc._id));
+    };
+
+    const linkedTasks = getLinkedTasksForSelectedDoc();
+
     if (loading) return <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>Synching knowledge engine...</div>;
 
     return (
@@ -208,14 +250,37 @@ export default function WikiPage() {
                         </div>
 
                         <div style={{ marginTop: '2rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
-                            <h4 style={{ margin: '0 0 1rem' }}>Connections</h4>
-                            <div style={{ display: 'flex', gap: '1rem' }}>
-                                <div style={{ background: 'var(--bg-app)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.6 }}>
-                                    <LinkIcon size={14} /> Linked Tasks (0)
+                            <h4 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <LinkIcon size={18} /> execution context
+                            </h4>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {/* Link new task component */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <select 
+                                        className="form-input" 
+                                        style={{ maxWidth: '300px', fontSize: '0.85rem', padding: '0.5rem' }}
+                                        onChange={(e) => { handleLinkTask(e.target.value); e.target.value = ''; }}
+                                        defaultValue=""
+                                    >
+                                        <option value="" disabled>+ Pin document to an active Task</option>
+                                        {tasks.filter(t => t.status !== 'completed').map(t => (
+                                            <option key={t._id} value={t._id}>{t.title} ({t.status})</option>
+                                        ))}
+                                    </select>
                                 </div>
-                                <div style={{ background: 'var(--bg-app)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.6 }}>
-                                    <Tag size={14} /> Linked Milestones (0)
-                                </div>
+
+                                {/* List active links */}
+                                {linkedTasks.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        {linkedTasks.map(t => (
+                                            <div key={t._id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--card-bg)', padding: '0.5rem 1rem', borderRadius: '4px', border: '1px solid var(--border)', fontSize: '0.85rem' }}>
+                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: t.status === 'completed' ? 'var(--success)' : 'var(--accent)' }}></span>
+                                                {t.title}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

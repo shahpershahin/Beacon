@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { getApiUrl } from '@/utils/api';
 
 export default function ManageData() {
-    const [financials, setFinancials] = useState({ revenue: 0, funding: 0, burnRate: 0 });
+    const [financials, setFinancials] = useState({ revenue: 0, funding: 0, burnRate: 0, cashInBank: 0 });
     const [newTask, setNewTask] = useState('');
     const [taskAssignee, setTaskAssignee] = useState('');
     const [teamMembers, setTeamMembers] = useState([]);
@@ -21,7 +21,8 @@ export default function ManageData() {
                     setFinancials({
                         revenue: data.financials.revenue || 0,
                         funding: data.financials.funding || 0,
-                        burnRate: data.financials.burnRate || 0
+                        burnRate: data.financials.burnRate || 0,
+                        cashInBank: data.financials.cashInBank || 0
                     });
                 }
 
@@ -44,7 +45,8 @@ export default function ManageData() {
                 body: JSON.stringify({
                     revenue: Number(financials.revenue),
                     funding: Number(financials.funding),
-                    burnRate: Number(financials.burnRate)
+                    burnRate: Number(financials.burnRate),
+                    cashInBank: Number(financials.cashInBank)
                 })
             });
             const data = await req.json();
@@ -106,8 +108,13 @@ export default function ManageData() {
                         <input type="number" className="form-input" value={financials.revenue} onChange={e => setFinancials({ ...financials, revenue: e.target.value })} style={{ marginTop: '0.5rem' }} />
                     </div>
                     <div>
-                        <label style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Funding ($)</label>
+                        <label style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total Funding Raised ($)</label>
                         <input type="number" className="form-input" value={financials.funding} onChange={e => setFinancials({ ...financials, funding: e.target.value })} style={{ marginTop: '0.5rem' }} />
+                    </div>
+                    <div>
+                        <label style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Current Cash in Bank ($)</label>
+                        <input type="number" className="form-input" value={financials.cashInBank} onChange={e => setFinancials({ ...financials, cashInBank: e.target.value })} style={{ marginTop: '0.5rem' }} />
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>Used to calculate real-time runway.</span>
                     </div>
                     <div>
                         <label style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Monthly Burn Rate ($)</label>
