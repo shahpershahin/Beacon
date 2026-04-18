@@ -71,7 +71,7 @@ export default function TeamRoster({ members }) {
                                             </div>
                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                 <div style={{ fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                    {member.name || (member.email ? member.email.split('@')[0] : 'Unknown')}
+                                                    {member.name || member.user?.name || member.email || member.user?.email || `User ${member.user?._id || member.user || '?'}`}
                                                 </div>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                                     <span style={{ color: getDeptColor(dept) }}>{getDeptIcon(dept)}</span>
