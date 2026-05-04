@@ -18,8 +18,10 @@ const server = http.createServer(app);
 
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
   'https://trybeacon.vercel.app',
-  process.env.FRONTEND_URL // Allow dynamic override
+  process.env.FRONTEND_URL 
 ].filter(Boolean);
 
 const io = new Server(server, {

@@ -37,14 +37,17 @@ export default function Login() {
     };
 
     return (
-        <div className="auth-container">
+        <div className="auth-page">
             <div className="auth-card">
-                <h1>Welcome Back</h1>
-                <p>Login to track your startup progress</p>
+                <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+                    <div style={{ width: '56px', height: '56px', background: 'var(--accent)', borderRadius: '16px', margin: '0 auto 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', boxShadow: '0 10px 20px rgba(99, 102, 241, 0.3)' }}>⚡</div>
+                    <h1>Welcome Back</h1>
+                    <p>Enter your credentials to access your workspace</p>
+                </div>
 
-                {error && <div style={{ color: '#ef4444', marginBottom: '1rem', textAlign: 'center', fontSize: '0.875rem' }}>{error}</div>}
+                {error && <div style={{ color: '#ef4444', marginBottom: '1.5rem', textAlign: 'center', fontSize: '0.875rem', background: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '8px' }}>{error}</div>}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     <div className="form-group">
                         <label>Email Address</label>
                         <input
@@ -65,14 +68,14 @@ export default function Login() {
                             placeholder="••••••••"
                         />
                     </div>
-                    <button type="submit" className="btn-primary" disabled={loading}>
-                        {loading ? 'Logging in...' : 'Login'}
+                    <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%', padding: '1rem', fontSize: '1rem' }}>
+                        {loading ? 'Logging in...' : 'Sign In'}
                     </button>
                 </form>
 
-                <div style={{ margin: '1.5rem 0', display: 'flex', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                <div style={{ margin: '2.5rem 0', display: 'flex', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                     <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
-                    <span style={{ margin: '0 1rem' }}>OR</span>
+                    <span style={{ margin: '0 1.25rem', fontWeight: 700 }}>Secure Login</span>
                     <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
                 </div>
 
@@ -80,7 +83,7 @@ export default function Login() {
                     <GoogleLogin
                         onSuccess={async (credentialResponse) => {
                             try {
-                                const loadingToast = toast.loading('Signing in with Google...');
+                                const loadingToast = toast.loading('Authenticating...');
                                 const res = await fetch(getApiUrl('/api/auth/google'), {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
@@ -92,7 +95,6 @@ export default function Login() {
                                 localStorage.setItem('user', JSON.stringify(data.user));
                                 toast.success('Welcome back!', { id: loadingToast });
                                 
-                                // NEW: If Google login identifies a new user, send to onboarding
                                 if (data.isNewUser) {
                                     router.push('/onboarding');
                                 } else {
@@ -102,13 +104,14 @@ export default function Login() {
                                 toast.error(err.message || 'Google Authentication failed');
                             }
                         }}
-                        onError={() => toast.error('Google Auth pop-up failed')}
+                        onError={() => toast.error('Google Auth failed')}
                         theme="filled_black"
+                        shape="pill"
                     />
                 </div>
 
-                <div className="auth-link" style={{ marginTop: '1.5rem' }}>
-                    Don't have an account? <Link href="/signup">Sign up</Link>
+                <div className="auth-link">
+                    New to Beacon? <Link href="/signup">Create an account</Link>
                 </div>
             </div>
         </div>

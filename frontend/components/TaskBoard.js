@@ -119,56 +119,53 @@ export default function TaskBoard({ tasks, onUpdate, activeChannel, userDepartme
 
     return (
         <div style={{ width: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
                     {hasEditAccess && !isCreating && (
-                        <button onClick={() => setIsCreating(true)} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
-                             + Quick Add Task
+                        <button onClick={() => setIsCreating(true)} className="btn-primary" style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem' }}>
+                             + New Task
                         </button>
                     )}
                     {hasEditAccess && isCreating && (
-                        <form onSubmit={handleCreateTask} style={{ display: 'flex', gap: '0.5rem' }}>
+                        <form onSubmit={handleCreateTask} style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-surface)', padding: '0.4rem', borderRadius: '50px', border: '1px solid var(--border)' }}>
                             <input 
                                 autoFocus
                                 className="form-input" 
-                                placeholder="Task title..." 
+                                placeholder="What needs to be done?" 
                                 value={newTitle}
                                 onChange={e => setNewTitle(e.target.value)}
-                                style={{ minWidth: '250px', padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
+                                style={{ border: 'none', background: 'transparent', padding: '0.4rem 1rem', width: '280px' }}
                             />
-                            <button type="submit" className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Save</button>
-                            <button type="button" onClick={() => setIsCreating(false)} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Cancel</button>
+                            <button type="submit" className="btn-primary" style={{ padding: '0.4rem 1rem' }}>Save</button>
+                            <button type="button" onClick={() => setIsCreating(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0 1rem' }}>Cancel</button>
                         </form>
                     )}
-                    {!hasEditAccess && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--bg-app)', padding: '0.4rem 1rem', borderRadius: '20px', border: '1px solid var(--border)' }}>
-                            🔒 View Only ({activeChannel} Channel)
-                        </div>
-                    )}
                 </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={filterMine} onChange={e => setFilterMine(e.target.checked)} style={{ transform: 'scale(1.1)' }} />
-                    Show Only My Tasks
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.85rem', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.5rem 1rem', borderRadius: '50px', border: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
+                    <input type="checkbox" checked={filterMine} onChange={e => setFilterMine(e.target.checked)} style={{ accentColor: 'var(--accent)' }} />
+                    Assigned to me
                 </label>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', width: '100%' }}>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', width: '100%' }}>
                 {columns.map(col => (
                     <div
                         key={col}
-                        className="card"
-                        style={{ display: 'flex', flexDirection: 'column', padding: '1.25rem', height: '100%', minHeight: '350px' }}
+                        className="glass-card"
+                        style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem', height: '100%', minHeight: '500px' }}
                         onDrop={(e) => handleDrop(e, col)}
                         onDragOver={(e) => e.preventDefault()}
                     >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 800 }}>
                                 {columnTitles[col]}
-                                <span style={{ background: 'var(--bg-app)', padding: '0.2rem 0.6rem', borderRadius: '12px', marginLeft: '0.75rem', fontSize: '0.75rem', color: 'var(--text-main)' }}>
+                                <span style={{ background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.75rem', borderRadius: '50px', marginLeft: '1rem', fontSize: '0.7rem', color: 'var(--text-main)', border: '1px solid var(--border)' }}>
                                     {filteredTasks.filter(t => t.status === col).length}
                                 </span>
                             </h3>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
                             {filteredTasks.filter(t => t.status === col).map(t => (
                                 <div
                                     key={t._id}
@@ -176,77 +173,47 @@ export default function TaskBoard({ tasks, onUpdate, activeChannel, userDepartme
                                     onDragStart={(e) => handleDragStart(e, t)}
                                     onDoubleClick={() => { setEditingTaskId(t._id); setEditTitle(t.title); }}
                                     style={{
-                                        background: 'var(--bg-app)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)',
-                                        cursor: editingTaskId === t._id ? 'text' : 'grab', fontSize: '0.95rem', color: 'var(--text-main)', transition: 'transform 0.1s',
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                        background: 'var(--bg-app)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
+                                        cursor: editingTaskId === t._id ? 'text' : 'grab', transition: 'all 0.2s', position: 'relative'
                                     }}
                                     onDragEnd={(e) => { e.target.style.opacity = '1'; }}
                                     onDrag={(e) => { e.target.style.opacity = '0.5'; }}
                                 >
                                     {editingTaskId === t._id ? (
-                                        <form onSubmit={(e) => handleEditSubmit(e, t._id)} style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <form onSubmit={(e) => handleEditSubmit(e, t._id)}>
                                             <input
                                                 autoFocus
                                                 type="text"
                                                 value={editTitle}
                                                 onChange={(e) => setEditTitle(e.target.value)}
                                                 onBlur={(e) => handleEditSubmit(e, t._id)}
-                                                style={{
-                                                    width: '100%', background: 'transparent', border: 'none',
-                                                    borderBottom: '1px solid var(--accent)', color: 'var(--text-main)',
-                                                    outline: 'none', fontSize: '0.95rem', padding: '0'
-                                                }}
+                                                style={{ width: '100%', background: 'transparent', border: 'none', color: 'white', outline: 'none', fontSize: '0.95rem' }}
                                             />
                                         </form>
                                     ) : (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                                            <span style={{ wordBreak: 'break-word', flex: 1 }}>{t.title}</span>
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button
-                                                    onClick={() => setChatTaskId(t._id)}
-                                                    style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontSize: '0.875rem' }}
-                                                    title="Task Chat"
-                                                >
-                                                    💬 {t.comments?.length > 0 && <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>{t.comments.length}</span>}
-                                                </button>
-                                                {hasEditAccess && (
-                                                    <button
-                                                        onClick={() => { setEditingTaskId(t._id); setEditTitle(t.title); }}
-                                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, fontSize: '0.875rem' }}
-                                                        title="Edit task text"
-                                                    >
-                                                        ✎
-                                                    </button>
+                                        <>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
+                                                <span style={{ fontSize: '0.95rem', lineHeight: '1.5', fontWeight: 500 }}>{t.title}</span>
+                                                <button onClick={() => setChatTaskId(t._id)} style={{ background: 'rgba(99, 102, 241, 0.1)', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: '0.4rem', borderRadius: '8px', fontSize: '0.8rem' }}>💬</button>
+                                            </div>
+                                            
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                {t.assignee ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent), var(--accent-funky))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800 }}>
+                                                            {t.assignee.name?.charAt(0)}
+                                                        </div>
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t.assignee.name?.split(' ')[0]}</span>
+                                                    </div>
+                                                ) : <div />}
+                                                
+                                                {t.linkedDocs?.length > 0 && (
+                                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                        📚 {t.linkedDocs.length} docs
+                                                    </div>
                                                 )}
                                             </div>
-                                        </div>
-                                    )}
-                                    {t.assignee && (
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--accent)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                            <div style={{ background: 'var(--accent)', color: 'white', width: '20px', height: '20px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '10px' }}>
-                                                {t.assignee.name ? t.assignee.name[0].toUpperCase() : '@'}
-                                            </div>
-                                            {t.assignee.name || t.assignee.email}
-                                        </div>
-                                    )}
-                                    {t.linkedDocs?.length > 0 && (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.75rem' }}>
-                                            {t.linkedDocs.map(doc => (
-                                                <a 
-                                                    key={doc._id} 
-                                                    href={`/dashboard/wiki?docId=${doc._id}`}
-                                                    target="_blank"
-                                                    style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', color: 'var(--text-muted)', textDecoration: 'none', background: 'var(--bg-app)', padding: '0.3rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border)' }}
-                                                >
-                                                    📚 {doc.title}
-                                                </a>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {t.department && t.department !== 'General' && activeChannel === 'General' && (
-                                        <div style={{ marginTop: '0.5rem', fontSize: '0.65rem', fontWeight: 700, opacity: 0.6, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                            🏷️ {t.department}
-                                        </div>
+                                        </>
                                     )}
                                 </div>
                             ))}
@@ -255,48 +222,44 @@ export default function TaskBoard({ tasks, onUpdate, activeChannel, userDepartme
                 ))}
             </div>
 
-            {/* TASK CHAT MODAL */}
+            {/* MODERN TASK MODAL */}
             {chatTaskId && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '1rem', backdropFilter: 'blur(4px)' }}>
-                    <div className="card" style={{ maxWidth: '500px', width: '100%', background: 'var(--bg-app)', border: '1px solid var(--border)', borderRadius: '12px', display: 'flex', flexDirection: 'column', height: '600px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-                            <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--foreground)' }}>
-                                💬 Task Thread
-                            </h3>
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(10px)' }}>
+                    <div className="glass-card" style={{ maxWidth: '600px', width: '90%', height: '80vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
+                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Discussion Thread</h3>
+                                <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{tasks.find(t => t._id === chatTaskId)?.title}</p>
+                            </div>
                             <button onClick={() => setChatTaskId(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
                         </div>
                         
-                        <div style={{ padding: '1rem 1.5rem', background: 'var(--card-bg)', borderBottom: '1px solid var(--border)', fontSize: '0.9rem', color: 'var(--text-main)', fontStyle: 'italic' }}>
-                            "{tasks.find(t => t._id === chatTaskId)?.title}"
-                        </div>
-                        
-                        <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {tasks.find(t => t._id === chatTaskId)?.comments?.length === 0 ? (
-                                <div style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: '2rem', fontSize: '0.9rem' }}>No comments yet. Start the discussion!</div>
-                            ) : (
-                                tasks.find(t => t._id === chatTaskId)?.comments?.map((c, i) => (
-                                    <div key={i} style={{ background: 'var(--card-bg)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--accent)', fontWeight: 'bold', marginBottom: '0.25rem' }}>
-                                            {c.user?.name || c.user?.email || 'User'}
-                                            <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '0.5rem' }}>
-                                                {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                        <div style={{ fontSize: '0.9rem', color: 'var(--foreground)' }}>{c.text}</div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            {tasks.find(t => t._id === chatTaskId)?.comments?.map((c, i) => (
+                                <div key={i} style={{ display: 'flex', gap: '1rem' }}>
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-app)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>
+                                        {c.user?.name?.charAt(0) || '?'}
                                     </div>
-                                ))
-                            )}
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{c.user?.name || 'Someone'}</span>
+                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>{c.text}</div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                         
-                        <form onSubmit={(e) => handleAddComment(e, chatTaskId)} style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '0.5rem' }}>
+                        <form onSubmit={(e) => handleAddComment(e, chatTaskId)} style={{ padding: '1.5rem 2rem', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', display: 'flex', gap: '1rem' }}>
                             <input 
                                 className="form-input" 
-                                placeholder="Type a message..." 
+                                placeholder="Add a comment..." 
                                 value={newCommentText}
                                 onChange={e => setNewCommentText(e.target.value)}
                                 style={{ flex: 1 }}
                             />
-                            <button type="submit" className="btn btn-primary" disabled={!newCommentText.trim()}>Send</button>
+                            <button type="submit" className="btn-primary" disabled={!newCommentText.trim()}>Post</button>
                         </form>
                     </div>
                 </div>

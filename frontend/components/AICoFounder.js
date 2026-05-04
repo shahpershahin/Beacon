@@ -53,173 +53,142 @@ export default function AICoFounder() {
     }
   };
 
-  return (
+    return (
     <>
       {/* Floating Button */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
         style={{
           position: 'fixed',
-          bottom: '2rem',
-          right: '2rem',
-          width: '60px',
-          height: '60px',
-          borderRadius: '50%',
-          backgroundColor: 'var(--accent)',
+          bottom: '2.5rem',
+          right: '2.5rem',
+          width: '64px',
+          height: '64px',
+          borderRadius: '20px',
+          background: 'var(--accent)',
           color: 'white',
           border: 'none',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          boxShadow: '0 12px 30px rgba(99, 102, 241, 0.4)',
           cursor: 'pointer',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
           zIndex: 1000,
-          transition: 'transform 0.2s',
-          transform: isOpen ? 'scale(0)' : 'scale(1)'
+          transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          transform: isOpen ? 'rotate(135deg) scale(0.8)' : 'rotate(0) scale(1)'
         }}
-        title="Open AI Co-Founder"
+        title="AI Co-Founder"
       >
-        <Sparkles size={28} />
+        {isOpen ? <X size={28} /> : <Sparkles size={28} />}
       </button>
 
       {/* Chat Window */}
       <div 
         style={{
           position: 'fixed',
-          bottom: '2rem',
-          right: '2rem',
-          width: '380px',
-          height: '550px',
-          backgroundColor: 'var(--bg-app)',
+          bottom: '7.5rem',
+          right: '2.5rem',
+          width: 'min(440px, 90vw)',
+          height: '650px',
+          background: 'var(--bg-card)',
+          backdropFilter: 'var(--glass)',
           border: '1px solid var(--border)',
-          borderRadius: '16px',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: '0 40px 80px rgba(0,0,0,0.15)',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 1000,
           opacity: isOpen ? 1 : 0,
           pointerEvents: isOpen ? 'auto' : 'none',
           transform: isOpen ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
+          transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
           overflow: 'hidden'
         }}
       >
         {/* Header */}
-        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--card-bg)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ backgroundColor: 'var(--accent)', padding: '0.5rem', borderRadius: '8px', color: 'white', display: 'flex' }}>
-              <Bot size={20} />
+        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ background: 'var(--accent)', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+              <Bot size={22} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>AI Co-Founder</h3>
-              <span style={{ fontSize: '0.75rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <span style={{ width: '8px', height: '8px', background: 'var(--success)', borderRadius: '50%', display: 'inline-block' }}></span> Active
-              </span>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>AI Partner</h3>
+              <span style={{ fontSize: '0.7rem', color: 'var(--success)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>● Live Context</span>
             </div>
           </div>
-          <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}>
-            <X size={20} />
-          </button>
         </div>
 
-        {/* Messages Stage */}
-        <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Messages */}
+        <div style={{ flex: 1, padding: '2rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {messages.map((msg, idx) => (
-            <div 
-              key={idx} 
-              style={{
-                alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '85%'
-              }}
-            >
-              <div 
-                style={{
-                  background: msg.role === 'user' ? 'var(--accent)' : 'var(--card-bg)',
-                  color: msg.role === 'user' ? 'white' : 'var(--foreground)',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '12px',
-                  borderBottomRightRadius: msg.role === 'user' ? 0 : '12px',
-                  borderBottomLeftRadius: msg.role === 'ai' ? 0 : '12px',
-                  border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
-                  fontSize: '0.9rem',
-                  lineHeight: '1.4'
-                }}
-              >
-                  {msg.role === 'ai' ? (
-                      <div className="markdown-ai">
-                          <ReactMarkdown components={{
-                              p: ({node, ...props}) => <p style={{margin: '0 0 0.5rem 0'}} {...props} />,
-                              ul: ({node, ...props}) => <ul style={{margin: '0.5rem 0', paddingLeft: '1rem'}} {...props} />,
-                              li: ({node, ...props}) => <li style={{marginBottom: '0.25rem'}} {...props} />
-                          }}>
-                              {msg.content}
-                          </ReactMarkdown>
-                      </div>
-                  ) : (
-                      msg.content
-                  )}
+            <div key={idx} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+              <div style={{
+                background: msg.role === 'user' ? 'var(--accent)' : 'var(--bg-app)',
+                padding: '1rem 1.25rem',
+                borderRadius: '16px',
+                borderBottomRightRadius: msg.role === 'user' ? 4 : 16,
+                borderBottomLeftRadius: msg.role === 'ai' ? 4 : 16,
+                border: '1px solid var(--border)',
+                fontSize: '0.95rem',
+                lineHeight: '1.5',
+                color: msg.role === 'user' ? 'white' : 'var(--text-main)'
+              }}>
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
               </div>
             </div>
           ))}
           {loading && (
-            <div style={{ alignSelf: 'flex-start', background: 'var(--card-bg)', padding: '0.75rem 1rem', borderRadius: '12px', borderBottomLeftRadius: 0, border: '1px solid var(--border)', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <div className="typing-dot"></div>
-              <div className="typing-dot" style={{ animationDelay: '0.2s' }}></div>
-              <div className="typing-dot" style={{ animationDelay: '0.4s' }}></div>
+            <div style={{ alignSelf: 'flex-start', background: 'var(--bg-app)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              Analyzing workspace data...
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Quick Prompts */}
-        {!loading && messages.length === 1 && (
-            <div style={{ padding: '0 1.5rem', display: 'flex', gap: '0.5rem', overflowX: 'auto', marginBottom: '1rem', scrollbarWidth: 'none' }}>
-                <button onClick={() => setInput("What's our biggest execution bottleneck right now?")} style={{ whiteSpace: 'nowrap', background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-main)', fontSize: '0.75rem', padding: '0.5rem 0.75rem', borderRadius: '12px', cursor: 'pointer' }}>Analyze Execution</button>
-                <button onClick={() => setInput("Calculate our runway strictly based on active burn.")} style={{ whiteSpace: 'nowrap', background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-main)', fontSize: '0.75rem', padding: '0.5rem 0.75rem', borderRadius: '12px', cursor: 'pointer' }}>Check Runway</button>
-            </div>
-        )}
-
-        {/* Input Form */}
-        <form onSubmit={handleSubmit} style={{ padding: '1rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '0.5rem', background: 'var(--bg-app)' }}>
-          <input 
-            type="text" 
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask your AI Co-Founder..." 
-            style={{
-              flex: 1,
-              background: 'var(--card-bg)',
-              border: '1px solid var(--border)',
-              color: 'var(--foreground)',
-              padding: '0.75rem 1rem',
-              borderRadius: '24px',
-              outline: 'none',
-              fontSize: '0.9rem'
-            }}
-            disabled={loading}
-          />
-          <button 
-            type="submit" 
-            disabled={!input.trim() || loading}
-            style={{
-              background: input.trim() ? 'var(--accent)' : 'var(--card-bg)',
-              color: input.trim() ? 'white' : 'var(--text-muted)',
-              border: 'none',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              cursor: input.trim() ? 'pointer' : 'not-allowed',
-              transition: 'background 0.2s'
-            }}
-          >
-            <Send size={18} style={{ marginLeft: '2px' }} />
-          </button>
+        {/* Footer */}
+        <form onSubmit={handleSubmit} style={{ padding: '1.5rem 2rem', borderTop: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
+          <div style={{ position: 'relative' }}>
+            <input 
+              type="text" 
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask anything..." 
+              style={{
+                width: '100%',
+                background: 'var(--bg-app)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-main)',
+                padding: '1rem 3.5rem 1rem 1.25rem',
+                borderRadius: '50px',
+                outline: 'none',
+                fontSize: '0.95rem'
+              }}
+            />
+            <button 
+              type="submit" 
+              disabled={!input.trim() || loading}
+              style={{
+                position: 'absolute',
+                right: '0.5rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: input.trim() ? 'var(--accent)' : 'transparent',
+                border: 'none',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              <Send size={16} />
+            </button>
+          </div>
         </form>
       </div>
-
     </>
   );
 }

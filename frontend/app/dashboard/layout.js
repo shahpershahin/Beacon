@@ -28,10 +28,10 @@ export default function DashboardLayout({ children }) {
             } else {
                 const parsedUser = JSON.parse(userData);
                 setUser(parsedUser);
-                
+
                 let savedRole = localStorage.getItem('userRole');
                 if (savedRole === 'undefined' || savedRole === 'null') savedRole = null;
-                
+
                 // Pass the workspace role directly to state, don't let a generic profile role overwrite it
                 setUserRole({
                     profile: parsedUser.role,
@@ -64,53 +64,61 @@ export default function DashboardLayout({ children }) {
 
     return (
         <div className="dashboard-layout">
-            <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h2 style={{ color: 'var(--accent)', margin: 0, wordBreak: 'break-word', letterSpacing: '-0.02em' }}>{user.startupName || 'Startup Tracker'}</h2>
-                    {mounted && (
-                        <button
-                            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
-                            title="Toggle Light/Dark Mode"
-                        >
-                            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                        </button>
-                    )}
+            <aside className="sidebar">
+                <div style={{ marginBottom: '3rem' }}>
+                    <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ width: '32px', height: '32px', background: 'var(--accent)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem' }}>B</div>
+                        <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.02em' }}>BEACON</h2>
+                    </Link>
                 </div>
-                <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, marginTop: '1rem' }}>
-                    <Link href="/dashboard" style={{ color: 'var(--foreground)', textDecoration: 'none', fontWeight: 'bold' }}>Overview</Link>
 
-                    <div style={{ marginTop: '1.5rem', marginBottom: '0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Channels</div>
-                    <Link href="/dashboard?channel=General" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🏢 All-Hands</Link>
-                    <Link href="/dashboard?channel=Engineering" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>💻 Engineering</Link>
-                    <Link href="/dashboard?channel=Design" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🎨 Design</Link>
-                    <Link href="/dashboard?channel=Finance" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>💰 Finance</Link>
-                    <Link href="/dashboard?channel=Operations" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>⚙️ Operations</Link>
+                <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                    <div style={{ padding: '0 0.5rem 0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Navigation</div>
+                    <Link href="/dashboard" className="sidebar-link active">🏠 Overview</Link>
+                    <Link href="/dashboard/wiki" className="sidebar-link">📚 Wiki</Link>
+                    
+                    <div style={{ marginTop: '2rem', padding: '0 0.5rem 0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Channels</div>
+                    <Link href="/dashboard?channel=General" className="sidebar-link">🏢 All-Hands</Link>
+                    <Link href="/dashboard?channel=Engineering" className="sidebar-link">💻 Engineering</Link>
+                    <Link href="/dashboard?channel=Design" className="sidebar-link">🎨 Design</Link>
+                    <Link href="/dashboard?channel=Finance" className="sidebar-link">💰 Finance</Link>
 
-
-
-                    <div style={{ marginTop: '1.5rem', marginBottom: '0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Management</div>
-                    <Link href="/dashboard/wiki" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>📚 Knowledge Base</Link>
-
-                    {/* Strict role-based access for Team & HR */}
-                    {['founder', 'admin', 'hr'].includes(user.role?.toLowerCase()) || 
-                     ['founder', 'admin', 'hr'].includes(userRole?.profile?.toLowerCase()) || 
-                     ['founder', 'admin', 'hr'].includes(userRole?.workspace?.toLowerCase()) ? (
-                        <Link href="/dashboard/hr" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>👥 Team & HR</Link>
-                    ) : null}
-                    <Link href="/dashboard/manage" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Manage Data</Link>
-                    <Link href="/dashboard/automations" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>⚡ Automations</Link>
-                    <Link href="/dashboard/integrations" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Integrations</Link>
-                    <Link href="/dashboard/settings" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Settings</Link>
-                    <Link href="/dashboard/profile" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Account Profile</Link>
-                    <a href="#" onClick={handleLogout} style={{ color: 'var(--danger)', textDecoration: 'none', marginTop: 'auto' }}>Logout</a>
+                    <div style={{ marginTop: '2rem', padding: '0 0.5rem 0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Startup OS</div>
+                    <Link href="/dashboard/automations" className="sidebar-link">⚡ Automations</Link>
+                    <Link href="/dashboard/hr" className="sidebar-link">👥 Team Hub</Link>
+                    <Link href="/dashboard/manage" className="sidebar-link">⚙️ Manage</Link>
                 </nav>
+
+                <div style={{ marginTop: 'auto', paddingTop: '2rem', borderTop: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent), var(--accent-funky))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                            {user.name?.charAt(0)}
+                        </div>
+                        <div style={{ overflow: 'hidden' }}>
+                            <div style={{ fontSize: '0.875rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.role || 'Founder'}</div>
+                        </div>
+                    </div>
+                    <button onClick={handleLogout} style={{ width: '100%', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: 'none', padding: '0.6rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>Logout</button>
+                </div>
             </aside>
+
             <main className="main-content">
-                <header style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                    <h2 style={{ margin: 0 }}>Welcome, {user.name}</h2>
-                    <div style={{ background: 'var(--card-bg)', padding: '0.5rem 1rem', borderRadius: '2rem', border: '1px solid var(--border-color)', fontSize: '0.875rem', wordBreak: 'break-all', maxWidth: '100%' }}>
-                        {user.email}
+                <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Welcome back, {user.name.split(' ')[0]} ✌️</h1>
+                        <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Here is what's happening with your startup today.</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        {mounted && (
+                            <button
+                                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.5rem', borderRadius: '8px' }}
+                            >
+                                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                            </button>
+                        )}
+                        <Link href="/dashboard/profile" className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textDecoration: 'none' }}>Profile Settings</Link>
                     </div>
                 </header>
                 {children}
