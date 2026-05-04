@@ -65,16 +65,57 @@ Beacon follows a **"Cyber-Foundry"** design language:
 
 ## 🏗 System Architecture
 
-### 1. Data Pipeline
-- **API Chain**: Frontend ↔ Express REST API ↔ MongoDB.
-- **Broadcaster**: Socket.io hooks natively into the API chain to push real-time updates (e.g., new tasks, chat messages).
+### High-Level Components
+```mermaid
+graph TD
+    User((Founder/Team))
+    
+    subgraph "Frontend (Next.js 15)"
+        UI[Minimal-Funky UI]
+        State[React State/Hooks]
+        SocketClient[Socket.io Client]
+    end
+    
+    subgraph "API Gateway (Express 5.0)"
+        Auth[JWT/OAuth Handler]
+        Routes[API Routes]
+        Broadcaster[Socket.io Server]
+    end
+    
+    subgraph "External Services"
+        Gemini[Gemini 2.5 AI Engine]
+        Mongo[(MongoDB Atlas)]
+        Google[Google Cloud Auth]
+    end
 
-### 2. AI Intelligence Logic
-- **Context Injection**: Beacon pulls live snapshots of your `Tasks`, `Runway`, and `Team` status and injects them into the Gemini system prompt to ensure the AI co-founder has "live" context.
+    User <--> UI
+    UI <--> Auth
+    Auth <--> Routes
+    Routes <--> Mongo
+    Routes <--> Gemini
+    Routes <--> Broadcaster
+    Broadcaster <--> SocketClient
+    UI <--> Google
+```
 
-### 3. Cyber-Foundry Isolation
-- **CORS Policy**: Restrictive origin-based access control.
-- **JWT Auth**: Stateless authentication with 7-day rolling tokens.
+### Data Flow Pipeline (AI Analysis Loop)
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant B as Backend
+    participant DB as MongoDB
+    participant AI as Gemini AI
+
+    U->>F: Asks: "Where is my bottleneck?"
+    F->>B: POST /api/ai/analyze
+    B->>DB: Fetch Task Backlog & Team Velocity
+    DB-->>B: Return Live Context
+    B->>AI: Prompt + Live Context Snapshot
+    AI-->>B: Return Strategic Insight
+    B-->>F: Return AI Response
+    F->>U: Displays "Minimal-Funky" Insight
+```
 
 ---
 
