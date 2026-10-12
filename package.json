@@ -1,0 +1,12 @@
+{
+  "name": "beacon-startup-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Beacon - The Startup Operating System",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "frontend": "npm --prefix frontend run dev",
+    "backend": "npm --prefix backend start",
+    "dev:backend": "npm --prefix backend run dev"
+  }
+}

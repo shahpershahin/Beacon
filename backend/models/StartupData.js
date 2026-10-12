@@ -70,6 +70,30 @@ const financialSchema = new mongoose.Schema({
     cashInBank: { type: Number, default: 0 }
 });
 
+const decisionSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    context: { type: String, required: true },
+    expectedOutcome: { type: String, required: true },
+    confidenceScore: { type: Number, min: 0, max: 100, default: 50 },
+    actualOutcome: { type: String, default: '' },
+    lessonLearned: { type: String, default: '' },
+    status: { type: String, enum: ['Pending', 'Success', 'Failure', 'Neutral'], default: 'Pending' },
+    category: { type: String, enum: ['Product', 'Pricing', 'Hiring', 'Marketing', 'Financial', 'General'], default: 'General' },
+    impactRevenue: { type: Number, default: 0 },
+    impactRunway: { type: Number, default: 0 },
+    impactVelocity: { type: Number, default: 0 },
+    date: { type: Date, default: Date.now },
+    reviewDate: { type: Date, required: true },
+    author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+});
+
+const memoryEventSchema = new mongoose.Schema({
+    type: { type: String, enum: ['decision', 'task', 'milestone', 'financial', 'wiki', 'team'], required: true },
+    title: { type: String, required: true },
+    detail: { type: String },
+    sourceId: { type: mongoose.Schema.Types.ObjectId },
+    timestamp: { type: Date, default: Date.now }
+});
 
 const startupDataSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -95,7 +119,9 @@ const startupDataSchema = new mongoose.Schema({
         slackWebhookUrl: { type: String, default: '' }
     },
     sprints: [sprintSchema],
-    contacts: [contactSchema]
+    contacts: [contactSchema],
+    decisions: [decisionSchema],
+    memoryEvents: [memoryEventSchema]
 }, { timestamps: true });
 
 module.exports = mongoose.model('StartupData', startupDataSchema);

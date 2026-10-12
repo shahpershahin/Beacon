@@ -8,36 +8,37 @@ export default function About() {
       
       {/* Hero Narrative */}
       <section style={{
-        padding: '200px 2rem 100px',
-        maxWidth: '1000px',
+        padding: '100px 2rem 60px',
+        maxWidth: '960px',
         margin: '0 auto',
         textAlign: 'center'
       }}>
         <div className="animate-fade">
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.25rem 0.75rem', borderRadius: '4px', background: 'var(--bg-surface)', border: '1px solid var(--border)', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+            <span>📖</span>
+            <span>The Beacon Manifesto</span>
+          </div>
           <h1 style={{ 
-            fontSize: 'clamp(3rem, 10vw, 5rem)', 
-            fontWeight: '900', 
-            marginBottom: '2rem',
-            letterSpacing: '-0.05em',
-            lineHeight: 0.95
+            fontSize: 'clamp(2.5rem, 7vw, 4rem)', 
+            fontWeight: 800, 
+            marginBottom: '1.5rem',
+            letterSpacing: '-0.04em',
+            lineHeight: 1.1,
+            color: 'var(--text-main)'
           }}>
-            THE <br />
-            <span style={{ 
-              background: 'linear-gradient(to right, var(--accent), var(--accent-funky))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>MANIFESTO.</span>
+            Think, write, and execute <br />
+            in one connected flow.
           </h1>
           <p style={{ 
-            fontSize: '1.25rem', 
-            lineHeight: '1.6', 
+            fontSize: '1.15rem', 
+            lineHeight: '1.65', 
             color: 'var(--text-muted)', 
-            maxWidth: '700px', 
-            margin: '0 auto 4rem',
-            fontWeight: '500'
+            maxWidth: '680px', 
+            margin: '0 auto 3.5rem',
+            fontWeight: 400
           }}>
             Startups don't die because of bad ideas. They die because of <strong>coordination chaos</strong>. 
-            We built Beacon to kill the noise and give founders their focus back.
+            We built Beacon to replace disjointed tools with a calm, tactile operating system.
           </p>
         </div>
 
@@ -47,17 +48,17 @@ export default function About() {
           gap: '1.5rem',
           textAlign: 'left'
         }}>
-          <div className="glass-card animate-fade" style={{ animationDelay: '0.1s' }}>
+          <div className="card animate-fade" style={{ animationDelay: '0.1s' }}>
             <div style={{ color: 'var(--accent)', marginBottom: '1.5rem' }}><Rocket size={32} /></div>
             <h3 style={{ marginBottom: '1rem', fontWeight: 800 }}>Velocity First</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6 }}>We believe speed is the only competitive advantage. Beacon is engineered to remove every millisecond of friction from your workflow.</p>
           </div>
-          <div className="glass-card animate-fade" style={{ animationDelay: '0.2s' }}>
-            <div style={{ color: 'var(--accent-funky)', marginBottom: '1.5rem' }}><Shield size={32} /></div>
+          <div className="card animate-fade" style={{ animationDelay: '0.2s' }}>
+            <div style={{ color: 'var(--accent)', marginBottom: '1.5rem' }}><Shield size={32} /></div>
             <h3 style={{ marginBottom: '1rem', fontWeight: 800 }}>Truth Centralization</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6 }}>No more "Where is that document?" Your capital, tasks, and knowledge live in a single, unshakeable source of truth.</p>
           </div>
-          <div className="glass-card animate-fade" style={{ animationDelay: '0.3s' }}>
+          <div className="card animate-fade" style={{ animationDelay: '0.3s' }}>
             <div style={{ color: 'var(--success)', marginBottom: '1.5rem' }}><Zap size={32} /></div>
             <h3 style={{ marginBottom: '1rem', fontWeight: 800 }}>AI Synergy</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6 }}>AI shouldn't just generate text; it should understand your company. Beacon's AI partner is plugged directly into your live metrics.</p>

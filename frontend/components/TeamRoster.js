@@ -16,11 +16,11 @@ export default function TeamRoster({ members }) {
 
     const getDeptColor = (dept) => {
         switch(dept) {
-            case 'Engineering': return '#3b82f6'; // Blue
-            case 'Design': return '#ec4899'; // Pink
-            case 'Finance': return '#10b981'; // Green
-            case 'Growth': return '#8b5cf6'; // Violet
-            case 'Operations': return '#f59e0b'; // Amber
+            case 'Engineering': return '#3b82f6';
+            case 'Design': return '#06b6d4';
+            case 'Finance': return '#10b981';
+            case 'Growth': return 'var(--accent)';
+            case 'Operations': return '#f59e0b';
             default: return 'var(--accent)';
         }
     };

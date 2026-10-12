@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Menu, X, Sun, Moon } from 'lucide-react';
+import { Menu, X, Sun, Moon, ArrowRight } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 export default function PublicNav() {
@@ -14,58 +14,100 @@ export default function PublicNav() {
   return (
     <nav style={{
       position: 'fixed',
-      top: '1.5rem',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: 'min(1200px, 90%)',
-      height: '70px',
-      background: 'var(--bg-card)',
-      backdropFilter: 'var(--glass)',
-      border: '1px solid var(--border)',
-      borderRadius: '50px',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '56px',
+      background: 'var(--bg-app)',
+      borderBottom: '1px solid var(--border)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 2rem',
+      padding: '0 1.5rem',
       zIndex: 1000,
-      boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+      backdropFilter: 'blur(10px)'
     }}>
-      <Link href="/" style={{
-        fontSize: '1.25rem',
-        fontWeight: '900',
-        color: 'var(--text-main)',
-        textDecoration: 'none',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        letterSpacing: '-0.03em'
-      }}>
-        <div style={{ width: '32px', height: '32px', background: 'var(--accent)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>⚡</div>
-        BEACON
-      </Link>
+      {/* Notion Sticker Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+        <Link href="/" style={{
+          fontSize: '1.05rem',
+          fontWeight: 700,
+          color: 'var(--text-main)',
+          textDecoration: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.65rem',
+          letterSpacing: '-0.02em'
+        }}>
+          <div style={{
+            width: '26px',
+            height: '26px',
+            background: 'var(--text-main)',
+            color: 'var(--bg-app)',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '0.9rem',
+            fontWeight: 800
+          }}>
+            B
+          </div>
+          <span>Beacon</span>
+        </Link>
 
-      {/* Desktop Links */}
-      <div style={{ display: 'none', gap: '2.5rem', alignItems: 'center', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }} className="desktop-nav">
-        <Link href="/#features" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Features</Link>
-        <Link href="/about" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>About</Link>
-        <Link href="/contact" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact</Link>
+        {/* Desktop Links */}
+        <div style={{ display: 'none', gap: '1.5rem', alignItems: 'center' }} className="desktop-nav">
+          <Link href="/#features" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.86rem', fontWeight: 500, transition: 'color 0.15s ease' }}>Product</Link>
+          <Link href="/#solutions" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.86rem', fontWeight: 500, transition: 'color 0.15s ease' }}>Solutions</Link>
+          <Link href="/about" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.86rem', fontWeight: 500, transition: 'color 0.15s ease' }}>Manifesto</Link>
+          <Link href="/contact" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.86rem', fontWeight: 500, transition: 'color 0.15s ease' }}>Contact</Link>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+      {/* Right Action Stack */}
+      <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center' }}>
         {mounted && (
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center' }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.35rem', display: 'flex', alignItems: 'center', borderRadius: '4px' }}
+            title="Toggle theme"
           >
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
           </button>
         )}
-        <Link href="/login" style={{ display: 'none', color: 'var(--text-main)', textDecoration: 'none', fontSize: '0.9rem', fontWeight: '600' }} className="desktop-nav">Sign In</Link>
-        <Link href="/signup" className="btn-primary" style={{ textDecoration: 'none', padding: '0.75rem 1.5rem', fontSize: '0.85rem' }}>Join the waitlist</Link>
-        <button onClick={() => setIsOpen(!isOpen)} style={{ background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', display: 'none' }} className="mobile-toggle">
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
+        <Link href="/login" style={{ color: 'var(--text-main)', textDecoration: 'none', fontSize: '0.86rem', fontWeight: 500, padding: '0.35rem 0.6rem' }} className="desktop-nav">
+          Log in
+        </Link>
+        <Link href="/signup" className="btn-primary" style={{ textDecoration: 'none', padding: '0.4rem 0.85rem', fontSize: '0.84rem', fontWeight: 500 }}>
+          Get Beacon free
+        </Link>
+        <button onClick={() => setIsOpen(!isOpen)} style={{ background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', display: 'none', padding: '0.25rem' }} className="mobile-toggle">
+          {isOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
+
+      {/* Mobile Dropdown */}
+      {isOpen && (
+        <div style={{
+          position: 'absolute',
+          top: '56px',
+          left: 0,
+          right: 0,
+          background: 'var(--bg-app)',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '1.25rem',
+          gap: '1rem',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+        }}>
+          <Link href="/#features" onClick={() => setIsOpen(false)} style={{ color: 'var(--text-main)', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500 }}>Product</Link>
+          <Link href="/about" onClick={() => setIsOpen(false)} style={{ color: 'var(--text-main)', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500 }}>Manifesto</Link>
+          <Link href="/contact" onClick={() => setIsOpen(false)} style={{ color: 'var(--text-main)', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500 }}>Contact</Link>
+          <Link href="/login" onClick={() => setIsOpen(false)} style={{ color: 'var(--text-main)', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500 }}>Log in</Link>
+        </div>
+      )}
     </nav>
   );
 }

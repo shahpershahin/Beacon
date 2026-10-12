@@ -1,23 +1,12 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const StartupData = require('../models/StartupData');
 const User = require('../models/User');
 const { triggerSlackNotification } = require('../utils/slack');
 const Stripe = require('stripe');
+const { auth, requireVerified } = require('../middleware/auth');
+const { validateObjectIdParam, sanitizeBodyStrings } = require('../middleware/validation');
 
 const router = express.Router();
-
-const auth = (req, res, next) => {
-    const token = req.header('x-auth-token');
-    if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded.user;
-        next();
-    } catch (err) {
-        res.status(401).json({ message: 'Token is not valid' });
-    }
-};
 
 const getAccessQuery = (userId) => {
     return { $or: [{ user: userId }, { 'teamMembers.user': userId }] };
@@ -114,7 +103,7 @@ router.get('/', auth, async (req, res) => {
         res.json({ ...data.toObject(), teamMembers: populatedTeam, userRole, userDepartment, role: physicsRole });
     } catch (err) {
         console.error("GET /api/startup ERROR:", err);
-        res.status(500).json({ message: 'Server error', error: err.message });
+        res.status(500).json({ message: 'Server error' });
     }
 });
 
@@ -131,6 +120,14 @@ router.post('/financials', auth, async (req, res) => {
         const oldRunway = data.financials.burnRate > 0 ? ((data.financials.cashInBank || data.financials.funding) / data.financials.burnRate) : Infinity;
         data.financials = { ...data.financials, ...req.body };
         const newRunway = data.financials.burnRate > 0 ? ((data.financials.cashInBank || data.financials.funding) / data.financials.burnRate) : Infinity;
+
+        // Push memory event
+        if (!data.memoryEvents) data.memoryEvents = [];
+        data.memoryEvents.push({
+            type: 'financial',
+            title: 'Financials Updated',
+            detail: `Cash in Bank: $${data.financials.cashInBank || 0}, Burn Rate: $${data.financials.burnRate || 0}/mo, Revenue: $${data.financials.revenue || 0}/mo`
+        });
 
         await data.save();
         logActivity(data, req.user.id, 'updated financials', `Target Burn: $${data.financials.burnRate}`);
@@ -160,7 +157,7 @@ router.get('/goals', auth, async (req, res) => {
     }
 });
 
-router.post('/goals', auth, async (req, res) => {
+router.post('/goals', auth, sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
         if (!data) data = new StartupData({ user: req.user.id });
@@ -178,9 +175,10 @@ router.post('/goals', auth, async (req, res) => {
     }
 });
 
-router.put('/goals/:id', auth, async (req, res) => {
+router.put('/goals/:id', auth, validateObjectIdParam('id'), sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
         const goal = data.goals.id(req.params.id);
         if (!goal) return res.status(404).json({ message: 'Goal not found' });
 
@@ -197,9 +195,10 @@ router.put('/goals/:id', auth, async (req, res) => {
     }
 });
 
-router.delete('/goals/:id', auth, async (req, res) => {
+router.delete('/goals/:id', auth, validateObjectIdParam('id'), async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
         data.goals.pull(req.params.id);
         
         // Cleanup links
@@ -215,7 +214,7 @@ router.delete('/goals/:id', auth, async (req, res) => {
     }
 });
 
-router.post('/tasks', auth, async (req, res) => {
+router.post('/tasks', auth, requireVerified, sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
         if (!data) data = new StartupData({ user: req.user.id });
@@ -244,9 +243,10 @@ router.post('/tasks', auth, async (req, res) => {
 });
 
 // Update Task
-router.put('/tasks/:id', auth, async (req, res) => {
+router.put('/tasks/:id', auth, validateObjectIdParam('id'), sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
         const task = data.tasks.id(req.params.id);
         if (!task) return res.status(404).json({ message: 'Task not found' });
 
@@ -267,12 +267,24 @@ router.put('/tasks/:id', auth, async (req, res) => {
         
         if (statusChanged && task.status === 'completed') {
             logActivity(data, req.user.id, 'completed task', task.title);
+            if (!data.memoryEvents) data.memoryEvents = [];
+            data.memoryEvents.push({
+                type: 'task',
+                title: `Task Completed: ${task.title}`,
+                detail: `Completed by ${req.user.name || 'team member'}`,
+                sourceId: task._id
+            });
             // --- TRIGGER AUTOMATION ENGINE ---
             await evaluateAutomations('TASK_COMPLETED', data, { taskId: task._id, title: task.title, assignee: task.assignee });
         }
 
         await data.save();
-        if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+        if (req.io) {
+            req.io.emit('startup_updated', { startupId: data._id.toString() });
+            if (statusChanged && task.status === 'completed') {
+                req.io.emit('notification', { message: `${req.user.name || 'Teammate'} completed "${task.title}"` });
+            }
+        }
         res.json(data.tasks);
     } catch (err) {
         res.status(500).json({ message: 'Server error' });
@@ -280,7 +292,7 @@ router.put('/tasks/:id', auth, async (req, res) => {
 });
 
 // Add Task Comment (Built-in Communication Layer)
-router.post('/tasks/:id/comments', auth, async (req, res) => {
+router.post('/tasks/:id/comments', auth, validateObjectIdParam('id'), sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
         if (!data) return res.status(404).json({ message: 'Startup not found' });
@@ -302,7 +314,10 @@ router.post('/tasks/:id/comments', auth, async (req, res) => {
         await data.save();
         
         // Trigger socket update for the specific task chat
-        if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+        if (req.io) {
+            req.io.emit('startup_updated', { startupId: data._id.toString() });
+            req.io.emit('notification', { message: `${req.user.name || 'Teammate'} commented on "${task.title}"` });
+        }
 
         res.json(task.comments);
     } catch (err) {
@@ -311,7 +326,7 @@ router.post('/tasks/:id/comments', auth, async (req, res) => {
 });
 
 // --- Task Document Links ---
-router.post('/tasks/:id/docs', auth, async (req, res) => {
+router.post('/tasks/:id/docs', auth, validateObjectIdParam('id'), sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
         if (!data) return res.status(404).json({ message: 'Startup not found' });
@@ -340,7 +355,7 @@ router.post('/tasks/:id/docs', auth, async (req, res) => {
 });
 
 // Add Milestone
-router.post('/milestones', auth, async (req, res) => {
+router.post('/milestones', auth, requireVerified, sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
         if (!data) return res.status(404).json({ message: 'Startup not found' });
@@ -361,9 +376,10 @@ router.post('/milestones', auth, async (req, res) => {
 });
 
 // Update Milestone
-router.put('/milestones/:id', auth, async (req, res) => {
+router.put('/milestones/:id', auth, validateObjectIdParam('id'), sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
         const milestone = data.milestones.id(req.params.id);
         if (!milestone) return res.status(404).json({ message: 'Milestone not found' });
 
@@ -378,6 +394,13 @@ router.put('/milestones/:id', auth, async (req, res) => {
         
         if (newlyAchieved) {
             logActivity(data, req.user.id, 'achieved milestone', milestone.title);
+            if (!data.memoryEvents) data.memoryEvents = [];
+            data.memoryEvents.push({
+                type: 'milestone',
+                title: `Milestone Achieved: ${milestone.title}`,
+                detail: milestone.description || '',
+                sourceId: milestone._id
+            });
         }
         
         await data.save();
@@ -448,12 +471,12 @@ router.post('/sync-stripe', auth, async (req, res) => {
 
         res.json({ success: true, revenue: totalRevenue });
     } catch (err) {
-        res.status(500).json({ message: 'Stripe sync failed', error: err.message });
+        res.status(500).json({ message: 'Stripe sync failed' });
     }
 });
 
 // Invite Team Member (Admin Only)
-router.post('/invite', auth, async (req, res) => {
+router.post('/invite', auth, requireVerified, async (req, res) => {
     try {
         const { email, role = 'Viewer', jobTitle = 'Team Member', department = 'General' } = req.body;
 
@@ -472,14 +495,11 @@ router.post('/invite', auth, async (req, res) => {
 
         if (!member) {
             tempPassword = '123456'; 
-            const bcrypt = require('bcryptjs');
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(tempPassword, salt);
             
             member = new User({
                 name: email.split('@')[0], 
                 email,
-                password: hashedPassword,
+                password: tempPassword,
                 startupName: inviter?.startupName || 'Partner Startup'
             });
             await member.save();
@@ -490,6 +510,15 @@ router.post('/invite', auth, async (req, res) => {
 
         data.teamMembers.push({ user: member._id, role, jobTitle, department });
         
+        // Push memory event
+        if (!data.memoryEvents) data.memoryEvents = [];
+        data.memoryEvents.push({
+            type: 'team',
+            title: `Team Member Invited: ${member.name || email}`,
+            detail: `Role: ${role}, Title: ${jobTitle}, Department: ${department}`,
+            sourceId: member._id
+        });
+
         // --- TRIGGER AUTOMATION ENGINE ---
         await evaluateAutomations('USER_INVITED', data, { newUserId: member._id, department });
 
@@ -504,7 +533,7 @@ router.post('/invite', auth, async (req, res) => {
 });
 
 // Update Team Member Role (Admin Only)
-router.put('/members/:id', auth, async (req, res) => {
+router.put('/members/:id', auth, validateObjectIdParam('id'), sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
         if (!data) return res.status(404).json({ message: 'Startup not found' });
@@ -534,7 +563,7 @@ router.put('/members/:id', auth, async (req, res) => {
 });
 
 // Remove Team Member (Admin Only)
-router.delete('/members/:id', auth, async (req, res) => {
+router.delete('/members/:id', auth, requireVerified, validateObjectIdParam('id'), async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
         if (!data) return res.status(404).json({ message: 'Startup not found' });
@@ -597,7 +626,7 @@ router.get('/members', auth, async (req, res) => {
 });
 
 // Sprints Endpoints
-router.post('/sprints', auth, async (req, res) => {
+router.post('/sprints', auth, sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
         if (!data) return res.status(404).json({ message: 'Startup not found' });
@@ -619,9 +648,10 @@ router.post('/sprints', auth, async (req, res) => {
     }
 });
 
-router.put('/sprints/:id', auth, async (req, res) => {
+router.put('/sprints/:id', auth, validateObjectIdParam('id'), sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
         const sprint = data.sprints.id(req.params.id);
         if (!sprint) return res.status(404).json({ message: 'Sprint not found' });
         
@@ -639,7 +669,7 @@ router.put('/sprints/:id', auth, async (req, res) => {
 });
 
 // CRM Contacts Endpoints
-router.post('/contacts', auth, async (req, res) => {
+router.post('/contacts', auth, sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
         if (!data) return res.status(404).json({ message: 'Startup not found' });
@@ -657,9 +687,10 @@ router.post('/contacts', auth, async (req, res) => {
     }
 });
 
-router.put('/contacts/:id', auth, async (req, res) => {
+router.put('/contacts/:id', auth, validateObjectIdParam('id'), sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
         const contact = data.contacts.id(req.params.id);
         if (!contact) return res.status(404).json({ message: 'Contact not found' });
         
@@ -673,9 +704,10 @@ router.put('/contacts/:id', auth, async (req, res) => {
     }
 });
 
-router.delete('/contacts/:id', auth, async (req, res) => {
+router.delete('/contacts/:id', auth, validateObjectIdParam('id'), async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
         data.contacts.pull(req.params.id);
         await data.save();
         if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
@@ -695,7 +727,7 @@ router.get('/automations', auth, async (req, res) => {
     }
 });
 
-router.post('/automations', auth, async (req, res) => {
+router.post('/automations', auth, sanitizeBodyStrings, async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
         if (!data) return res.status(404).json({ message: 'Startup not found' });
@@ -713,9 +745,10 @@ router.post('/automations', auth, async (req, res) => {
     }
 });
 
-router.delete('/automations/:id', auth, async (req, res) => {
+router.delete('/automations/:id', auth, validateObjectIdParam('id'), async (req, res) => {
     try {
         let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
         if (!checkAdminAccess(data, req.user.id)) {
             return res.status(403).json({ message: 'RBAC: Admin role required' });
         }
@@ -725,6 +758,329 @@ router.delete('/automations/:id', auth, async (req, res) => {
         if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
         res.json(data.automations);
     } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// --- DECISION JOURNAL CRUD ---
+router.post('/decisions', auth, requireVerified, sanitizeBodyStrings, async (req, res) => {
+    try {
+        let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
+        
+        if (!checkAdminAccess(data, req.user.id)) {
+            return res.status(403).json({ message: 'RBAC: Admin role required to create decisions' });
+        }
+
+        const decision = {
+            ...req.body,
+            author: req.user.id
+        };
+        if (!data.decisions) data.decisions = [];
+        data.decisions.push(decision);
+        const savedDecision = data.decisions[data.decisions.length - 1];
+
+        // Push memory event
+        if (!data.memoryEvents) data.memoryEvents = [];
+        data.memoryEvents.push({
+            type: 'decision',
+            title: `Decision Tracked: ${req.body.title}`,
+            detail: `Category: ${req.body.category || 'General'}. Context: ${req.body.context}. Confidence: ${req.body.confidenceScore || 50}%. Expected Outcome: ${req.body.expectedOutcome}. Review Date: ${new Date(req.body.reviewDate).toLocaleDateString()}`,
+            sourceId: savedDecision._id
+        });
+
+        await data.save();
+        if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+        res.json(data.decisions);
+    } catch (err) {
+        console.error("Create Decision Error:", err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.put('/decisions/:id', auth, validateObjectIdParam('id'), sanitizeBodyStrings, async (req, res) => {
+    try {
+        let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
+
+        if (!checkAdminAccess(data, req.user.id)) {
+            return res.status(403).json({ message: 'RBAC: Admin role required' });
+        }
+
+        const decision = data.decisions.id(req.params.id);
+        if (!decision) return res.status(404).json({ message: 'Decision not found' });
+
+        const statusChanged = req.body.status && req.body.status !== decision.status;
+        Object.assign(decision, req.body);
+
+        if (statusChanged || req.body.actualOutcome || req.body.lessonLearned) {
+            if (!data.memoryEvents) data.memoryEvents = [];
+            data.memoryEvents.push({
+                type: 'decision',
+                title: `Decision Evaluated: ${decision.title}`,
+                detail: `Status: ${decision.status}. Actual Outcome: ${decision.actualOutcome || 'None'}. Lesson: ${decision.lessonLearned || 'None'}. Revenue Impact: ${decision.impactRevenue || 0}%, Runway Impact: ${decision.impactRunway || 0}m, Velocity Impact: ${decision.impactVelocity || 0}%`,
+                sourceId: decision._id
+            });
+        }
+
+        await data.save();
+        if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+        res.json(data.decisions);
+    } catch (err) {
+        console.error("Update Decision Error:", err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.delete('/decisions/:id', auth, validateObjectIdParam('id'), async (req, res) => {
+    try {
+        let data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
+
+        if (!checkAdminAccess(data, req.user.id)) {
+            return res.status(403).json({ message: 'RBAC: Admin role required' });
+        }
+
+        data.decisions.pull(req.params.id);
+        
+        // Cleanup memoryEvents referencing this decision
+        if (data.memoryEvents) {
+            data.memoryEvents = data.memoryEvents.filter(e => !e.sourceId || e.sourceId.toString() !== req.params.id);
+        }
+
+        await data.save();
+        if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+        res.json(data.decisions);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// --- TIMELINE ENDPOINT ---
+router.get('/memory-events', auth, async (req, res) => {
+    try {
+        const data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.json([]);
+        const sortedEvents = (data.memoryEvents || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        res.json(sortedEvents);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// --- GLOBAL SEARCH ENDPOINT ---
+router.get('/search', auth, async (req, res) => {
+    try {
+        const { q = '' } = req.query;
+        const data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
+
+        const queryLower = q.toLowerCase();
+
+        // Search tasks
+        const matchingTasks = (data.tasks || []).filter(t => 
+            t.title.toLowerCase().includes(queryLower) ||
+            (t.comments && t.comments.some(c => c.text.toLowerCase().includes(queryLower)))
+        ).map(t => ({ id: t._id, type: 'task', title: t.title, subtitle: `Status: ${t.status} | Dept: ${t.department}` }));
+
+        // Search milestones
+        const matchingMilestones = (data.milestones || []).filter(m => 
+            m.title.toLowerCase().includes(queryLower) ||
+            (m.description && m.description.toLowerCase().includes(queryLower))
+        ).map(m => ({ id: m._id, type: 'milestone', title: m.title, subtitle: m.description || 'No description' }));
+
+        // Search decisions
+        const matchingDecisions = (data.decisions || []).filter(d => 
+            d.title.toLowerCase().includes(queryLower) ||
+            d.context.toLowerCase().includes(queryLower) ||
+            (d.expectedOutcome && d.expectedOutcome.toLowerCase().includes(queryLower)) ||
+            (d.actualOutcome && d.actualOutcome.toLowerCase().includes(queryLower)) ||
+            (d.lessonLearned && d.lessonLearned.toLowerCase().includes(queryLower))
+        ).map(d => ({ id: d._id, type: 'decision', title: d.title, subtitle: `Category: ${d.category} | Status: ${d.status}` }));
+
+        // Search contacts
+        const matchingContacts = (data.contacts || []).filter(c => 
+            c.name.toLowerCase().includes(queryLower) ||
+            (c.company && c.company.toLowerCase().includes(queryLower)) ||
+            (c.lastNote && c.lastNote.toLowerCase().includes(queryLower))
+        ).map(c => ({ id: c._id, type: 'contact', title: c.name, subtitle: `${c.type} | Company: ${c.company || 'N/A'}` }));
+
+        // Search documents (Wiki docs)
+        const Document = require('../models/Document');
+        const docs = await Document.find({ startup: data._id });
+        const matchingDocs = docs.filter(doc => 
+            doc.title.toLowerCase().includes(queryLower) ||
+            doc.content.toLowerCase().includes(queryLower)
+        ).map(doc => ({ id: doc._id, type: 'wiki', title: doc.title, subtitle: `Category: ${doc.category || 'General'}` }));
+
+        res.json({
+            tasks: matchingTasks,
+            milestones: matchingMilestones,
+            decisions: matchingDecisions,
+            contacts: matchingContacts,
+            wiki: matchingDocs
+        });
+    } catch (err) {
+        console.error("Search Error:", err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// --- DEPLOY BLUEPRINT ENDPOINT ---
+router.post('/deploy-blueprint', auth, requireVerified, async (req, res) => {
+    try {
+        const { tasks = [], milestones = [] } = req.body;
+        const data = await StartupData.findOne(getAccessQuery(req.user.id));
+        if (!data) return res.status(404).json({ message: 'Startup not found' });
+
+        if (!checkAdminAccess(data, req.user.id)) {
+            return res.status(403).json({ message: 'RBAC: Admin role required to deploy blueprints' });
+        }
+
+        // Deploy milestones
+        for (let m of milestones) {
+            data.milestones.push({
+                title: m.title,
+                description: m.description || '',
+                achieved: false,
+                targetDate: m.daysFromStart ? new Date(Date.now() + m.daysFromStart * 24 * 60 * 60 * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            });
+        }
+
+        // Deploy tasks
+        for (let t of tasks) {
+            data.tasks.push({
+                title: t.title,
+                status: 'pending',
+                department: t.department || 'General',
+                dueDate: t.daysFromStart ? new Date(Date.now() + t.daysFromStart * 24 * 60 * 60 * 1000) : undefined
+            });
+        }
+
+        logActivity(data, req.user.id, 'deployed blueprint', `${tasks.length} tasks and ${milestones.length} milestones created.`);
+
+        if (!data.memoryEvents) data.memoryEvents = [];
+        data.memoryEvents.push({
+            type: 'milestone',
+            title: `Blueprint Deployed`,
+            detail: `Added ${tasks.length} tasks and ${milestones.length} milestones to the startup workspace.`
+        });
+
+        await data.save();
+        if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Deploy Blueprint Error:", err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// --- SEED PREMIUM DEMO DATA ENDPOINT ---
+router.post('/seed', auth, async (req, res) => {
+    try {
+        let data = await StartupData.findOne({ user: req.user.id });
+        if (data) {
+            await StartupData.deleteOne({ _id: data._id });
+        }
+        
+        data = new StartupData({
+            user: req.user.id,
+            financials: {
+                cashInBank: 2400000,
+                burnRate: 130000,
+                revenue: 25000,
+                funding: 2500000
+            },
+            tasks: [
+                {
+                    title: "Prepare Series A pitch deck & financials",
+                    status: "pending",
+                    department: "General",
+                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                },
+                {
+                    title: "Refactor core authentication flow",
+                    status: "completed",
+                    department: "Engineering",
+                    dueDate: new Date()
+                },
+                {
+                    title: "Design main product dashboard visual system",
+                    status: "in-progress",
+                    department: "Design",
+                    dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+                }
+            ],
+            milestones: [
+                {
+                    title: "Close seed funding round",
+                    achieved: true,
+                    targetDate: new Date()
+                },
+                {
+                    title: "Launch public beta release",
+                    achieved: false,
+                    targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                }
+            ],
+            decisions: [
+                {
+                    title: "Adjust subscription tier pricing model",
+                    context: "Need higher margins to sustain paid customer acquisition scaling.",
+                    expectedOutcome: "Boost monthly ARPU by 20% with minimal customer churn.",
+                    confidenceScore: 85,
+                    category: "Pricing",
+                    status: "Success",
+                    reviewDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+                    actualOutcome: "ARPU increased by 22% with close to zero churn.",
+                    lessonLearned: "Customers are less price sensitive than we originally modeled.",
+                    impactRevenue: 22,
+                    impactRunway: 3,
+                    impactVelocity: 0
+                },
+                {
+                    title: "Hire lead product designer",
+                    context: "Product flow is too clunky and visual design lacks premium feel.",
+                    expectedOutcome: "Accelerate frontend sprint velocity and improve signup conversion.",
+                    confidenceScore: 70,
+                    category: "Hiring",
+                    status: "Pending",
+                    reviewDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
+                }
+            ],
+            memoryEvents: [
+                {
+                    type: "milestone",
+                    title: "Seed funding round closed ($2.5M raised)",
+                    detail: "Workspace data initialized with seed round milestones.",
+                    timestamp: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                },
+                {
+                    type: "decision",
+                    title: "Adjust subscription tier pricing model",
+                    detail: "Logged pricing optimization choice in journal.",
+                    timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)
+                },
+                {
+                    type: "financial",
+                    title: "Runway Adjusted to 18.4 Months",
+                    detail: "Cash in Bank: $2,400,000, Burn Rate: $130,000/mo, Revenue: $25,000/mo",
+                    timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+                }
+            ],
+            activities: [
+                {
+                    action: "system",
+                    detail: "Welcome to Beacon Startup OS command center."
+                }
+            ]
+        });
+
+        await data.save();
+        if (req.io) req.io.emit('startup_updated', { startupId: data._id.toString() });
+        res.json({ success: true, message: "Workspace seeded with demo data" });
+    } catch (err) {
+        console.error("Seed Data Error:", err);
         res.status(500).json({ message: 'Server error' });
     }
 });

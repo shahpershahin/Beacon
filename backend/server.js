@@ -1,7 +1,12 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet');
 require('dotenv').config();
+
+const logger = require('./utils/logger');
+const { detectSuspiciousTraffic } = require('./middleware/security');
+const { apiLimiter, aiLimiter } = require('./middleware/rateLimiter');
 
 const authRoutes = require('./routes/auth');
 const startupRoutes = require('./routes/startup');
@@ -10,6 +15,19 @@ const docRoutes = require('./routes/docs');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+
+// Enforce HTTPS in production environments
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && req.headers['x-forwarded-proto'] !== 'https') {
+    return res.redirect(`https://${req.headers.host}${req.url}`);
+  }
+  next();
+});
+
+// Enable Helmet security headers (allow Google OAuth popups postMessage)
+app.use(helmet({
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
+}));
 
 // WebSocket Integration Pipeline
 const http = require('http');
@@ -43,6 +61,9 @@ io.on('connection', (socket) => {
   });
 });
 
+// Rate limiting definitions migrated to middleware/rateLimiter.js
+
+// CORS and global Middlewares
 app.use(cors({
   origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -50,15 +71,28 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use(detectSuspiciousTraffic);
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/startup', startupRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/docs', docRoutes);
+app.use('/api/auth', apiLimiter, authRoutes);
+app.use('/api/startup', apiLimiter, startupRoutes);
+app.use('/api/ai', aiLimiter, aiRoutes);
+app.use('/api/docs', apiLimiter, docRoutes);
 
 app.get('/', (req, res) => {
   res.send('Startup Dashboard API Running (Sockets Enabled)');
+});
+
+// Global error handler - shields stack traces and database details from clients
+app.use((err, req, res, next) => {
+  logger.error('GLOBAL ERROR CAPTURED', {
+    message: err.message,
+    stack: err.stack,
+    url: req.originalUrl,
+    method: req.method,
+    ip: req.ip
+  });
+  res.status(500).json({ message: 'Internal server error occurred.' });
 });
 
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

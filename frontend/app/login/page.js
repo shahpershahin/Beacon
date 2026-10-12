@@ -40,9 +40,9 @@ export default function Login() {
         <div className="auth-page">
             <div className="auth-card">
                 <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-                    <div style={{ width: '56px', height: '56px', background: 'var(--accent)', borderRadius: '16px', margin: '0 auto 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', boxShadow: '0 10px 20px rgba(99, 102, 241, 0.3)' }}>⚡</div>
-                    <h1>Welcome Back</h1>
-                    <p>Enter your credentials to access your workspace</p>
+                    <div style={{ width: '52px', height: '52px', background: 'var(--bg-hover)', border: '1px solid var(--border)', borderRadius: '10px', margin: '0 auto 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>B</div>
+                    <h1 style={{ letterSpacing: '-0.02em', fontWeight: 800, fontSize: '1.75rem' }}>Welcome Back</h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.4rem' }}>Enter your credentials to access your workspace</p>
                 </div>
 
                 {error && <div style={{ color: '#ef4444', marginBottom: '1.5rem', textAlign: 'center', fontSize: '0.875rem', background: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '8px' }}>{error}</div>}

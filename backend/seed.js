@@ -8,14 +8,22 @@ const seedDatabase = async () => {
         await mongoose.connect(process.env.MONGO_URI);
         console.log('📦 Connected to MongoDB');
 
-        // Find the founder
-        const user = await User.findOne({ email: 'shahpershahin@gmail.com' });
+        // Find or create the founder
+        let user = await User.findOne({ email: 'shahpershahin@gmail.com' });
         if (!user) {
-            console.error('❌ User not found! Please login to the dashboard once to create your user.');
-            process.exit(1);
+            console.log('👤 Creating founder user: Shahper Shahin...');
+            user = new User({
+                name: 'Shahper Shahin',
+                email: 'shahpershahin@gmail.com',
+                password: 'password123',
+                startupName: 'Beacon OS',
+                role: 'founder',
+                isVerified: true
+            });
+            await user.save();
         }
 
-        console.log(`👤 Found user: ${user.name} (${user.email})`);
+        console.log(`👤 Active user: ${user.name} (${user.email})`);
 
         // Find or create their StartupData
         let startupData = await StartupData.findOne({ user: user._id });
