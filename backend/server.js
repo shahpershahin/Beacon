@@ -83,6 +83,16 @@ app.get('/', (req, res) => {
   res.send('Startup Dashboard API Running (Sockets Enabled)');
 });
 
+app.get('/health', (req, res) => {
+  const isDbConnected = mongoose.connection.readyState === 1;
+  res.status(isDbConnected ? 200 : 503).json({
+    status: isDbConnected ? 'healthy' : 'database_unavailable',
+    database: isDbConnected ? 'connected' : 'disconnected',
+    readyState: mongoose.connection.readyState,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Global error handler - shields stack traces and database details from clients
 app.use((err, req, res, next) => {
   logger.error('GLOBAL ERROR CAPTURED', {
@@ -97,6 +107,13 @@ app.use((err, req, res, next) => {
 
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.log('MongoDB connection error (Please start MongoDB locally!):', err.message));
+const mongoUri = process.env.MONGO_URI;
+if (!mongoUri) {
+  console.error('CRITICAL: MONGO_URI is missing from environment variables!');
+} else {
+  mongoose.connect(mongoUri, {
+    serverSelectionTimeoutMS: 5000
+  })
+    .then(() => console.log('MongoDB Connected'))
+    .catch(err => console.error('MongoDB connection error (Check MongoDB Atlas Network Access whitelist / MONGO_URI):', err.message));
+}

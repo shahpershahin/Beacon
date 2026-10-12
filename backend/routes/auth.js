@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 const { OAuth2Client } = require('google-auth-library');
 const { auth } = require('../middleware/auth');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/email');
@@ -11,6 +12,16 @@ const { validateRegister, validateLogin } = require('../middleware/validation');
 
 const router = express.Router();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || 'dummy');
+
+// Fail fast if database is disconnected instead of buffering and timing out after 10s
+router.use((req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({
+            message: 'Database is currently offline. Please ensure MongoDB Atlas Network Access allows all IPs (0.0.0.0/0) and that MONGO_URI is set in Render environment variables.'
+        });
+    }
+    next();
+});
 
 // Register
 router.post('/register', registerLimiter, validateRegister, async (req, res) => {
