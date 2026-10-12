@@ -79,11 +79,11 @@ export default function Login() {
                     <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
                     <GoogleLogin
                         onSuccess={async (credentialResponse) => {
+                            const loadingToast = toast.loading('Authenticating with Google...');
                             try {
-                                const loadingToast = toast.loading('Authenticating...');
                                 const res = await fetch(getApiUrl('/api/auth/google'), {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
@@ -101,10 +101,12 @@ export default function Login() {
                                     router.push('/dashboard');
                                 }
                             } catch (err) {
-                                toast.error(err.message || 'Google Authentication failed');
+                                toast.error(err.message || 'Google Authentication failed', { id: loadingToast });
                             }
                         }}
-                        onError={() => toast.error('Google Auth failed')}
+                        onError={() => {
+                            toast.error('Google Sign-In blocked. Ensure http://localhost:3000 is added to Authorized JavaScript origins in Google Cloud Console.');
+                        }}
                         theme="filled_black"
                         shape="pill"
                     />

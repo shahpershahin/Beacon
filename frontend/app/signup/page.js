@@ -104,11 +104,11 @@ export default function Signup() {
                     <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
                     <GoogleLogin
                         onSuccess={async (credentialResponse) => {
+                            const loadingToast = toast.loading('Creating Workspace with Google...');
                             try {
-                                const loadingToast = toast.loading('Creating Workspace...');
                                 const res = await fetch(getApiUrl('/api/auth/google'), {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
@@ -121,10 +121,12 @@ export default function Signup() {
                                 toast.success('Workspace ready!', { id: loadingToast });
                                 router.push('/onboarding');
                             } catch (err) {
-                                toast.error(err.message || 'Google Registration failed');
+                                toast.error(err.message || 'Google Registration failed', { id: loadingToast });
                             }
                         }}
-                        onError={() => toast.error('Google Auth Failed')}
+                        onError={() => {
+                            toast.error('Google Sign-Up blocked. Ensure http://localhost:3000 is added to Authorized JavaScript origins in Google Cloud Console.');
+                        }}
                         theme="filled_black"
                         shape="pill"
                     />

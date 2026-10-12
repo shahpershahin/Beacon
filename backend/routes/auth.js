@@ -170,8 +170,8 @@ router.post('/google', loginLimiter, async (req, res) => {
             isNewUser
         });
     } catch (err) {
-        console.error("GOOGLE AUTH ERROR:", err);
-        res.status(500).json({ message: 'Invalid Google Token or Auth Error' });
+        console.error("GOOGLE AUTH ERROR:", err.message);
+        res.status(401).json({ message: `Google authentication failed: ${err.message}` });
     }
 });
 
